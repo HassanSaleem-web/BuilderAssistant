@@ -1,3 +1,4 @@
+// ChatBox.jsx
 import React, { useEffect, useState } from "react";
 import OpenAI from "openai";
 
@@ -8,13 +9,14 @@ const openai = new OpenAI({
 });
 
 export default function ChatBox() {
-  const [assistantId] = useState(import.meta.env.VITE_ASSISTANT_ID);
+  const [assistantId] = useState(import.meta.env.VITE_ASSISTANT_ID); // Static Assistant ID
   const [threadId, setThreadId] = useState(null);
   const [userInput, setUserInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
 
+  // Step 1: Create a thread on mount
   useEffect(() => {
     const createThread = async () => {
       const thread = await openai.beta.threads.create();
@@ -27,27 +29,21 @@ export default function ChatBox() {
     setSelectedFiles(Array.from(e.target.files));
   };
 
-  const escapeHtml = (unsafe) =>
-    unsafe
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-
   const formatAssistantMessage = (text) => {
-    return escapeHtml(text)
+    return text
       .replace(/【.*?†.*?†.*?】/g, "") // Remove citations
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>") // Bold
-      .replace(/^- /gm, "• ") // Bullets
-      .replace(/\n/g, "<br>"); // Line breaks
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>") // Bold formatting
+      .replace(/^- /gm, "• ") // Convert hyphen bullets
+      .replace(/\n/g, "<br>"); // Preserve line breaks
   };
 
   const sendMessage = async () => {
     if (!userInput.trim() || !threadId) return;
+
     setLoading(true);
-
     try {
+      // Upload files to OpenAI and collect file IDs
       const uploadedFileIds = [];
-
       for (const file of selectedFiles) {
         const formData = new FormData();
         formData.append("file", file);
@@ -65,6 +61,7 @@ export default function ChatBox() {
         if (data.id) uploadedFileIds.push(data.id);
       }
 
+      // Step 2: Add user message to the thread
       await openai.beta.threads.messages.create(threadId, {
         role: "user",
         content: userInput,
@@ -76,10 +73,12 @@ export default function ChatBox() {
         }),
       });
 
+      // Step 3: Run the assistant on the thread
       const run = await openai.beta.threads.runs.create(threadId, {
         assistant_id: assistantId,
       });
 
+      // Step 4: Poll until run completes
       let runStatus;
       do {
         await new Promise((r) => setTimeout(r, 1000));
@@ -88,6 +87,7 @@ export default function ChatBox() {
         });
       } while (runStatus.status !== "completed");
 
+      // Step 5: Get the messages
       const response = await openai.beta.threads.messages.list(threadId);
       const sorted = response.data
         .slice()
@@ -96,14 +96,12 @@ export default function ChatBox() {
           role: m.role,
           content: m.content[0]?.text?.value || "",
         }));
-
       setMessages(sorted);
       setUserInput("");
-      setSelectedFiles([]);
+      setSelectedFiles([]); // reset file input
     } catch (err) {
       console.error("Chat error:", err);
     }
-
     setLoading(false);
   };
 
@@ -127,9 +125,7 @@ export default function ChatBox() {
             ) : (
               <div
                 style={{ whiteSpace: "pre-wrap" }}
-                dangerouslySetInnerHTML={{
-                  __html: formatAssistantMessage(msg.content),
-                }}
+                dangerouslySetInnerHTML={{ __html: formatAssistantMessage(msg.content) }}
               />
             )}
           </div>
