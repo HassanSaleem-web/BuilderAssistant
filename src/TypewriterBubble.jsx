@@ -1,18 +1,30 @@
 import React, { useEffect, useState } from "react";
 
 export default function TypewriterBubble({ text }) {
-  const [displayedText, setDisplayedText] = useState("");
+  const [displayed, setDisplayed] = useState("");
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    let i = 0;
-    setDisplayedText("");
-    const interval = setInterval(() => {
-      setDisplayedText(text.slice(0, i + 1));
-      i++;
-      if (i >= text.length) clearInterval(interval);
-    }, 15); // Adjust typing speed here (ms per char)
-    return () => clearInterval(interval);
+    setDisplayed("");
+    setIndex(0);
   }, [text]);
 
-  return <span>{displayedText}</span>;
+  useEffect(() => {
+    if (!text) return;
+
+    if (index < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayed((prev) => prev + text.charAt(index));
+        setIndex(index + 1);
+      }, 12);
+      return () => clearTimeout(timeout);
+    }
+  }, [index, text]);
+
+  return (
+    <div
+      className="typewriter-html"
+      dangerouslySetInnerHTML={{ __html: displayed }}
+    />
+  );
 }

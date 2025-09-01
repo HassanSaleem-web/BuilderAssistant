@@ -217,10 +217,7 @@ export default function ChatBox() {
                   ) : msg.content === "typing..." ? (
                     <div className="typing-dots"><span></span><span></span><span></span></div>
                   ) : msg.role === "assistant" ? (
-                    <div
-  className="bubble-content"
-  dangerouslySetInnerHTML={{ __html: cleanAssistantResponse(msg.content) }}
-></div>
+                    <TypewriterBubble text={cleanAssistantResponse(msg.content)} />
 
 
                   ) : (
