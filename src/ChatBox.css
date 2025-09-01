@@ -1,0 +1,364 @@
+/* 🌐 GLOBAL RESET */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+  background-color: #f5f7fa;
+  color: #1f2937;
+}
+
+/* 🔷 MAIN CONTAINER */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* 🔝 TOP NAVIGATION */
+.header-bar {
+  width: 100%;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+
+.brand-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.sub-brand {
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.role-selector {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  font-size: 0.9rem;
+}
+
+.lang-switcher button {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  border: none;
+  background: #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.profile-circle {
+  background: #e0e7ff;
+  border-radius: 50%;
+  padding: 0.5rem;
+  font-size: 1.2rem;
+}
+
+/* 🧱 MAIN LAYOUT GRID */
+.main-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr 260px;
+  gap: 1.25rem;
+  padding: 1.5rem 2rem;
+  flex-grow: 1;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 📁 PANELS */
+.panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+
+.panel-docs,
+.panel-results {
+  height: 100%;
+}
+
+.btn-add {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-add:hover {
+  background-color: #1d4ed8;
+}
+
+/* 💬 CHAT PANEL */
+.panel-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* 💬 CHAT LOG */
+.chat-log {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+  margin-bottom: 1rem;
+  max-height: calc(100vh - 250px); /* adjust based on header + input height */
+  scroll-behavior: smooth;
+}
+
+/* 🗨️ CHAT BUBBLES */
+.chat-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.chat-bubble .avatar {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.bubble-content {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  max-width: 85%;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.user-message .bubble-content {
+  background-color: #dbeafe;
+  align-self: flex-end;
+}
+
+.assistant-message .bubble-content {
+  background-color: #f3f4f6;
+  align-self: flex-start;
+}
+
+/* 📄 FILE PREVIEW */
+.file-preview-card {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.file-details {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+}
+
+.file-name {
+  font-weight: 500;
+}
+
+.file-type {
+  color: #6b7280;
+}
+
+/* 🔤 TYPING DOTS */
+.typing-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  background-color: #9ca3af;
+  border-radius: 50%;
+  animation: blink 1.4s infinite ease-in-out both;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes blink {
+  0%, 80%, 100% {
+    transform: scale(0);
+  } 
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* 🧾 INPUT */
+.chat-input-row {
+  display: flex;
+  gap: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 0.75rem;
+}
+
+.chat-textbox {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  font-size: 1rem;
+  outline: none;
+}
+
+.chat-send-btn {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.chat-send-btn:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+/* ✅ RESULTS PANEL */
+.result-list {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+.result-list li {
+  font-size: 0.9rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  background-color: #f9fafb;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-icon.success {
+  color: #10b981;
+}
+
+.status-icon.error {
+  color: #ef4444;
+}
+
+/* 📤 EXPORT BUTTONS */
+.export-btn {
+  background-color: #4b5563;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin-top: 0.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.export-btn:hover {
+  background-color: #374151;
+}
+/* 📁 FILE PREVIEW CONTAINER IN DOCUMENT PANEL */
+.file-preview-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #ffffff;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  word-break: break-word;
+}
+
+.file-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  color: #4b5563;
+  margin-top: 2px;
+}
+
+.file-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.file-name {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: #111827;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.file-type {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.chat-log::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-log::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 3px;
+}
+
+.chat-log::-webkit-scrollbar-track {
+  background: transparent;
+}

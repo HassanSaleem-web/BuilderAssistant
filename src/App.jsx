@@ -10,7 +10,7 @@ function App() {
 
   return (
     <div className="app-container">
-      <h1>📚 File-Aware Assistant Chat</h1>
+     
       <ChatBox messages={messages} addMessage={addMessage} />
     </div>
   );

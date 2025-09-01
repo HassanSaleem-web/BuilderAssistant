@@ -1,0 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --purple: #6246ea;
+  --orange: #432DD7;
+  --text-dark: #1e293b;
+  --text-light: #e0e7ff;
+  --bg-dark: #0e0e1e;
+  --bg-white: #ffffff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-light);
+  background-image: url('/page-illustration.svg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* NAVBAR */
+.navbar-wrapper {
+  display: flex;
+  justify-content: center;
+  padding-top: 20px;
+}
+.navbar {
+  background: white;
+  width: 60%;
+  border-radius: 10px;
+  padding: 0 24px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.logo-img {
+  height: 40px;
+}
+.nav-actions {
+  display: flex;
+  gap: 12px;
+}
+button {
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  padding: 10px 18px;
+  transition: 0.3s ease;
+}
+.btn-light {
+  background: #f7f7f7;
+  color: #333;
+  border: 1px solid #ddd;
+}
+.btn-purple {
+  background: var(--orange);
+  color: white;
+}
+
+/* HERO */
+.hero-container {
+  height: 30vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.hero-title {
+  font-size: 3rem;
+  font-weight: 600;
+}
+.hero-subtitle {
+  font-size: 1.1rem;
+  margin-top: 12px;
+  color: rgba(224, 231, 255, 0.85);
+}
+
+/* FORM WRAPPER */
+.form-container {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f8ff 60%, #f0eeff 100%);
+  color: #1e293b;
+  border-radius: 24px;
+  padding: 48px 60px;
+  width: 75%;
+  margin: 40px auto;
+  box-shadow: 0 6px 24px rgba(36, 37, 83, 0.1);
+  display: flex;
+  gap: 48px;
+  flex-wrap: wrap;
+}
+.form-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.form-label {
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #333;
+}
+textarea {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  resize: vertical;
+  min-height: 200px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+/* Buttons */
+.btn-outline-orange {
+  background: var(--orange);
+  color: white;
+}
+.btn-outline-orange:hover {
+  opacity: 0.9;
+}
