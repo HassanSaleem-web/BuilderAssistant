@@ -16,7 +16,13 @@ export default function ChatBox() {
   const [loading, setLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedRole, setSelectedRole] = useState("Investor");
+  const [selectedLanguage, setSelectedLanguage] = useState("EN");
+  const [analysisResults, setAnalysisResults] = useState([]); // ✅ ✅ THIS IS ENOUGH
+
   const fileInputRef = useRef();
+
+
+  
   const roleInstructions = {
     Investor: `You are responding to an Investor. Keep your response high-level, non-technical, focused on compliance, documentation readiness, and project confidence. Avoid deep technical language.`,
     Designer: `You are responding to a Designer (Architect or Engineer). Your response should include detailed legal or technical references based on Czech norms and BEP validation rules.`,
@@ -85,8 +91,24 @@ export default function ChatBox() {
 
       await openai.beta.threads.messages.create(threadId, {
         role: "user",
-        content: `${roleInstructions[selectedRole]}\n\nUser Query: ${userInput || "[uploaded files]"}`,
-
+        content: `${roleInstructions[selectedRole]}
+        ${selectedLanguage === "CS" ? "Please respond in Czech." : ""}
+        Analyze the uploaded document and give a response to the user.
+        
+        Then generate a JSON array with bullet points showing:
+        - Document compliance status
+        - BIM standard issues
+        - Clarity of objectives
+        - Task assignments
+        - Risks
+        
+        Format your summary like this:
+        
+        [{"status": "success", "text": "Validation of BEP"}, {"status": "error", "text": "Conflicts with BIM standards detected"}]
+        
+        Return the JSON block at the end of your message.`,
+        
+        
         ...(uploadedFileIds.length > 0 && {
           attachments: uploadedFileIds.map((id) => ({
             file_id: id,
@@ -110,6 +132,19 @@ export default function ChatBox() {
       const response = await openai.beta.threads.messages.list(threadId);
       const latestAssistant = response.data.find((m) => m.role === "assistant");
       const assistantContent = latestAssistant?.content[0]?.text?.value || "";
+      const resultRegex = /\[.*?\]/s;
+const match = assistantContent.match(resultRegex);
+let structuredResults = [];
+
+if (match) {
+  try {
+    structuredResults = JSON.parse(match[0]);
+  } catch (err) {
+    console.warn("JSON parse failed for assistant result panel:", err);
+  }
+}
+setAnalysisResults(structuredResults); // ❌ BAD – remove it
+
 
       setMessages((prev) => {
         const updated = [...prev];
@@ -148,10 +183,16 @@ export default function ChatBox() {
   <option>Farmer</option>
 </select>
 
-          <div className="lang-switcher">
-            <button>EN</button>
-            <button>CS</button>
-          </div>
+<div className="lang-switcher-toggle">
+  <div className={`lang-toggle ${selectedLanguage === "CS" ? "cs" : "en"}`} onClick={() => setSelectedLanguage(selectedLanguage === "EN" ? "CS" : "EN")}>
+    <div className="toggle-labels">
+      <span>EN</span>
+      <span>CS</span>
+    </div>
+    <div className="toggle-indicator" />
+  </div>
+</div>
+
           <div className="profile-circle">👤</div>
         </div>
       </header>
@@ -244,16 +285,29 @@ export default function ChatBox() {
 
         {/* Results Panel */}
         <aside className="panel panel-results">
-          <div className="panel-title">Results</div>
-          <ul className="result-list">
-            <li><span className="status-icon success">✔</span> Validation of BEP</li>
-            <li><span className="status-icon success">✔</span> Project objectives clearly defined</li>
-            <li><span className="status-icon error">✖</span> Conflicts with BIM standards detected</li>
-            <li><span className="status-icon success">✔</span> Responsibilities and tasks established</li>
-          </ul>
-          <button className="export-btn">Export to PDF</button>
-          <button className="export-btn">Export to CSV</button>
-        </aside>
+  <div className="panel-title">Results</div>
+
+  <div className="results-scrollable">
+    <ul className="result-list">
+      {analysisResults.length > 0 ? (
+        analysisResults.map((item, idx) => (
+          <li key={idx}>
+            <span className={`status-icon ${item.status}`}>
+              {item.status === "success" ? "✔" : item.status === "warning" ? "⚠" : "✖"}
+            </span>
+            {item.text}
+          </li>
+        ))
+      ) : (
+        <li className="placeholder">No results yet. Ask the bot to analyze a document.</li>
+      )}
+    </ul>
+  </div>
+
+  <button className="export-btn">Export to PDF</button>
+  <button className="export-btn">Export to CSV</button>
+</aside>
+
       </div>
     </div>
   );
