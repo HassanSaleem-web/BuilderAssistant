@@ -4,6 +4,9 @@ import "./ChatBox.css";
 import TypewriterBubble from "./TypewriterBubble";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext.jsx";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import autoTable from "jspdf-autotable";
 
 const openai = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
@@ -71,6 +74,8 @@ export default function ChatBox() {
 
     try {
       const uploadedFileIds = [];
+      
+
       for (const file of selectedFiles) {
         const formData = new FormData();
         formData.append("file", file);
@@ -88,20 +93,33 @@ export default function ChatBox() {
         if (data.id) uploadedFileIds.push(data.id);
       }
 
+      const uploadedFileNames = selectedFiles.map((f) => f.name).join(", ") || "None";
+
       const contentToSend = `
-You are a helpful assistant.
-You must only analyze uploaded documents if the user explicitly asks you to.
-If the user has uploaded documents but does not ask for analysis, just respond normally.
+      You are a helpful assistant.
+      
+      The user may upload documents (${uploadedFileNames}), but DO NOT reference, name, or analyze these documents **unless** they explicitly ask for it in their message.
+      
+      ⛔️ If the user does not request validation, analysis, review, or feedback — DO NOT mention the files. Just reply to the user’s question normally.
+      
+      ✅ If the user **does** ask to "validate", "analyze", or "review" a document, then:
+      - DO perform the validation.
+      - DO return your final response as a short summary **AND** a JSON array with key results.
+      
+      🟩 ALWAYS include this JSON array in your response when analysis is requested:
+      [
+        {"status": "success", "text": "What was validated successfully"},
+        {"status": "error", "text": "What issues or missing elements were found"}
+      ]
+      
+      Role Context: ${roleInstructions[selectedRole]}
+      ${selectedLanguage === "CS" ? "Please respond in Czech." : ""}
+      
+      User Message:
+      "${userInput}"
+      `;
+      
 
-
-User says: ${userInput}
-
-${roleInstructions[selectedRole]}
-${selectedLanguage === "CS" ? "Please respond in Czech." : ""}
-
-If you analyze, return a JSON array summary like:
-[{"status": "success", "text": "Validation passed"}, {"status": "error", "text": "Missing requirements"}]
-`;
 
       const messagePayload = {
         role: "user",
@@ -161,8 +179,110 @@ If you analyze, return a JSON array summary like:
 
     setLoading(false);
   };
-
-  return (
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    const title = "NEO Builder | Validorix";
+    const date = new Date().toLocaleString();
+  
+    // Header
+    doc.setFontSize(16);
+    doc.setTextColor(40, 40, 40);
+    doc.setFont("helvetica", "bold");
+    doc.text(title, 14, 20);
+  
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text(`Exported: ${date}`, 14, 27);
+  
+    // Assistant response
+    const lastAssistantMessage = messages
+      .slice()
+      .reverse()
+      .find((msg) => msg.role === "assistant")?.content || "No assistant response.";
+  
+    doc.setFontSize(12);
+    doc.setTextColor(33, 33, 33);
+    doc.text("Assistant Summary:", 14, 40);
+  
+    // Clean & format content
+    const rawLines = lastAssistantMessage
+      .replace(/<[^>]+>/g, "") // Strip HTML
+      .split("\n")             // Split by lines
+      .map((line) => line.trim())
+      .filter(Boolean);
+  
+    let y = 47;
+    doc.setFontSize(11);
+    rawLines.forEach((line) => {
+      if (/^\*\*(.+?)\*\*$/.test(line)) {
+        // Proper heading format with **heading**
+        const headingText = line.replace(/\*\*/g, "");
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(20, 20, 20);
+        doc.text(headingText, 14, y);
+        y += 8;
+      } else {
+        // Wrap and print normal content
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(50);
+        const wrapped = doc.splitTextToSize(line, 180);
+        wrapped.forEach((wLine) => {
+          doc.text(wLine, 14, y);
+          y += 6;
+        });
+      }
+  
+      // Avoid content going off the page
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+    });
+  
+    // Table of validation results
+    if (analysisResults.length > 0) {
+      const tableData = analysisResults.map((item) => [
+        item.status.toUpperCase(),
+        item.text,
+      ]);
+  
+      autoTable(doc, {
+        startY: y + 5,
+        head: [["Status", "Description"]],
+        body: tableData,
+        styles: {
+          fontSize: 10,
+          cellPadding: 4,
+        },
+        headStyles: {
+          fillColor: [30, 144, 255],
+          textColor: 255,
+          halign: "center",
+        },
+        columnStyles: {
+          0: { cellWidth: 30 },
+          1: { cellWidth: 150 },
+        },
+        didParseCell: function (data) {
+          if (data.section === "body") {
+            if (data.cell.raw.includes("SUCCESS")) {
+              data.cell.styles.textColor = [0, 128, 0];
+            } else if (data.cell.raw.includes("ERROR")) {
+              data.cell.styles.textColor = [255, 0, 0];
+            } else if (data.cell.raw.includes("WARNING")) {
+              data.cell.styles.textColor = [255, 165, 0];
+            }
+          }
+        },
+      });
+    } else {
+      doc.text("No validation results to display.", 14, y + 10);
+    }
+  
+    doc.save("validation-summary.pdf");
+  };
+   return (
     <div className="dashboard-container">
   {/* Navbar */}
       <header className="header-bar">
@@ -338,8 +458,9 @@ If you analyze, return a JSON array summary like:
             </ul>
           </div>
 
-          <button className="export-btn">Export to PDF</button>
-          <button className="export-btn">Export to CSV</button>
+          <button className="export-btn" onClick={exportToPDF}>Export to PDF</button>
+
+          
         </aside>
       </div>
     </div>
