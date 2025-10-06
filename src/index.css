@@ -102,3 +102,9 @@ button:focus-visible {
     font-size: 0.95em;
   }
 }
+/* src/index.css */
+/* src/index.css */
+html, body {
+  margin: 0;
+  padding: 0;
+}

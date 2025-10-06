@@ -421,3 +421,42 @@ body {
 .chat-log::-webkit-scrollbar-track {
   background: transparent;
 }
+.profile-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.profile-circle {
+  width: 36px;
+  height: 36px;
+  background-color: #ccc;
+  border-radius: 50%;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.profile-menu {
+  position: absolute;
+  top: 120%;
+  right: 0;
+  background: #1e1e2a;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  z-index: 10;
+}
+
+.profile-menu button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 0;
+  width: 100%;
+  text-align: left;
+}

@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import OpenAI from "openai";
 import "./ChatBox.css";
 import TypewriterBubble from "./TypewriterBubble";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "./auth/AuthContext.jsx";
 
 const openai = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
@@ -17,12 +19,13 @@ export default function ChatBox() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedRole, setSelectedRole] = useState("Investor");
   const [selectedLanguage, setSelectedLanguage] = useState("EN");
-  const [analysisResults, setAnalysisResults] = useState([]); // ✅ ✅ THIS IS ENOUGH
+  const [analysisResults, setAnalysisResults] = useState([]);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const navigate = useNavigate();
 
   const fileInputRef = useRef();
+  const { logout } = useAuth();
 
-
-  
   const roleInstructions = {
     Investor: `You are responding to an Investor. Keep your response high-level, non-technical, focused on compliance, documentation readiness, and project confidence. Avoid deep technical language.`,
     Designer: `You are responding to a Designer (Architect or Engineer). Your response should include detailed legal or technical references based on Czech norms and BEP validation rules.`,
@@ -30,7 +33,7 @@ export default function ChatBox() {
     Contractor: `You are responding to a Contractor or Freelancer. Be clear and direct. Help with cost estimation, compliance for deliverables, and document handover preparation.`,
     Farmer: `You are responding to a Farmer involved in subsidy projects. Give clear, supportive steps focused on document validation and subsidy eligibility.`,
   };
-  
+
   useEffect(() => {
     const createThread = async () => {
       const thread = await openai.beta.threads.create();
@@ -45,35 +48,29 @@ export default function ChatBox() {
     );
     setSelectedFiles((prev) => [...prev, ...files]);
   };
+
   function cleanAssistantResponse(text) {
     if (!text) return "";
-  
     return text
-      .replace(/【[^】]+】/g, "")                          // Remove garbage citations
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")  // Convert **bold** to <strong>
-      .replace(/^###\s+(.*)$/gm, "<h3>$1</h3>")           // Convert ### headings to <h3>
-      .replace(/\n{2,}/g, "<br/><br/>")                   // Paragraph breaks
-      .replace(/\n/g, "<br/>")                            // Line breaks
+      .replace(/【[^】]+】/g, "")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/^###\s+(.*)$/gm, "<h3>$1</h3>")
+      .replace(/\n{2,}/g, "<br/><br/>")
+      .replace(/\n/g, "<br/>")
       .trim();
   }
-  
-  
-  const sendMessage = async () => {
-    if (!userInput.trim() && selectedFiles.length === 0) return;
-    if (!threadId) return;
 
+  const sendMessage = async () => {
+    if (!userInput.trim() || !threadId) return;
     setLoading(true);
 
-    const userMessage = userInput.trim() ? { role: "user", content: userInput } : null;
-    const fileMessages = selectedFiles.map((file) => ({ role: "user", file }));
+    const userMessage = { role: "user", content: userInput };
     const placeholder = { role: "assistant", content: "typing..." };
-
-    setMessages((prev) => [...prev, ...fileMessages, ...(userMessage ? [userMessage] : []), placeholder]);
+    setMessages((prev) => [...prev, userMessage, placeholder]);
     setUserInput("");
 
     try {
       const uploadedFileIds = [];
-
       for (const file of selectedFiles) {
         const formData = new FormData();
         formData.append("file", file);
@@ -81,7 +78,9 @@ export default function ChatBox() {
 
         const res = await fetch("https://api.openai.com/v1/files", {
           method: "POST",
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}` },
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+          },
           body: formData,
         });
 
@@ -89,33 +88,33 @@ export default function ChatBox() {
         if (data.id) uploadedFileIds.push(data.id);
       }
 
-      await openai.beta.threads.messages.create(threadId, {
+      const contentToSend = `
+You are a helpful assistant.
+You must only analyze uploaded documents if the user explicitly asks you to.
+If the user has uploaded documents but does not ask for analysis, just respond normally.
+
+
+User says: ${userInput}
+
+${roleInstructions[selectedRole]}
+${selectedLanguage === "CS" ? "Please respond in Czech." : ""}
+
+If you analyze, return a JSON array summary like:
+[{"status": "success", "text": "Validation passed"}, {"status": "error", "text": "Missing requirements"}]
+`;
+
+      const messagePayload = {
         role: "user",
-        content: `${roleInstructions[selectedRole]}
-        ${selectedLanguage === "CS" ? "Please respond in Czech." : ""}
-        Analyze the uploaded document and give a response to the user.
-        
-        Then generate a JSON array with bullet points showing:
-        - Document compliance status
-        - BIM standard issues
-        - Clarity of objectives
-        - Task assignments
-        - Risks
-        
-        Format your summary like this:
-        
-        [{"status": "success", "text": "Validation of BEP"}, {"status": "error", "text": "Conflicts with BIM standards detected"}]
-        
-        Return the JSON block at the end of your message.`,
-        
-        
+        content: contentToSend,
         ...(uploadedFileIds.length > 0 && {
           attachments: uploadedFileIds.map((id) => ({
             file_id: id,
             tools: [{ type: "file_search" }],
           })),
         }),
-      });
+      };
+
+      await openai.beta.threads.messages.create(threadId, messagePayload);
 
       const run = await openai.beta.threads.runs.create(threadId, {
         assistant_id: assistantId,
@@ -132,20 +131,20 @@ export default function ChatBox() {
       const response = await openai.beta.threads.messages.list(threadId);
       const latestAssistant = response.data.find((m) => m.role === "assistant");
       const assistantContent = latestAssistant?.content[0]?.text?.value || "";
+
       const resultRegex = /\[.*?\]/s;
-const match = assistantContent.match(resultRegex);
-let structuredResults = [];
+      const match = assistantContent.match(resultRegex);
+      let structuredResults = [];
 
-if (match) {
-  try {
-    structuredResults = JSON.parse(match[0]);
-  } catch (err) {
-    console.warn("JSON parse failed for assistant result panel:", err);
-  }
-}
-setAnalysisResults(structuredResults); // ❌ BAD – remove it
+      if (match) {
+        try {
+          structuredResults = JSON.parse(match[0]);
+        } catch (err) {
+          console.warn("Could not parse JSON result:", err);
+        }
+      }
 
-
+      setAnalysisResults(structuredResults);
       setMessages((prev) => {
         const updated = [...prev];
         const typingIndex = updated.findIndex((m) => m.content === "typing...");
@@ -156,8 +155,6 @@ setAnalysisResults(structuredResults); // ❌ BAD – remove it
         }
         return updated;
       });
-
-      setSelectedFiles([]);
     } catch (err) {
       console.error("Chat error:", err);
     }
@@ -167,33 +164,53 @@ setAnalysisResults(structuredResults); // ❌ BAD – remove it
 
   return (
     <div className="dashboard-container">
-      {/* Navbar */}
+  {/* Navbar */}
       <header className="header-bar">
-        <div className="brand-title">NEO Builder <span className="sub-brand">| Validorix</span></div>
+        <div className="brand-title">
+          NEO Builder <span className="sub-brand">| Validorix</span>
+        </div>
         <div className="controls">
-        <select
-  className="role-selector"
-  value={selectedRole}
-  onChange={(e) => setSelectedRole(e.target.value)}
->
-  <option>Investor</option>
-  <option>Designer</option>
-  <option>Site Manager</option>
-  <option>Contractor</option>
-  <option>Farmer</option>
-</select>
+          <select
+            className="role-selector"
+            value={selectedRole}
+            onChange={(e) => setSelectedRole(e.target.value)}
+          >
+            <option>Investor</option>
+            <option>Designer</option>
+            <option>Site Manager</option>
+            <option>Contractor</option>
+            <option>Farmer</option>
+          </select>
 
-<div className="lang-switcher-toggle">
-  <div className={`lang-toggle ${selectedLanguage === "CS" ? "cs" : "en"}`} onClick={() => setSelectedLanguage(selectedLanguage === "EN" ? "CS" : "EN")}>
-    <div className="toggle-labels">
-      <span>EN</span>
-      <span>CS</span>
-    </div>
-    <div className="toggle-indicator" />
-  </div>
-</div>
+          <div className="lang-switcher-toggle">
+            <div
+              className={`lang-toggle ${selectedLanguage === "CS" ? "cs" : "en"}`}
+              onClick={() =>
+                setSelectedLanguage(selectedLanguage === "EN" ? "CS" : "EN")
+              }
+            >
+              <div className="toggle-labels">
+                <span>EN</span>
+                <span>CS</span>
+              </div>
+              <div className="toggle-indicator" />
+            </div>
+          </div>
 
-          <div className="profile-circle">👤</div>
+          {/* Profile dropdown */}
+          <div className="profile-dropdown">
+            <div
+              className="profile-circle"
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+            >
+              👤
+            </div>
+            {showProfileMenu && (
+              <div className="profile-menu">
+                <button onClick={logout}>Logout</button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -201,50 +218,53 @@ setAnalysisResults(structuredResults); // ❌ BAD – remove it
       <div className="main-layout">
         {/* Documents Panel */}
         <aside className="panel panel-docs">
-  <div className="panel-title">Documents</div>
+          <div className="panel-title">Documents</div>
 
-  {/* File Upload */}
-  <input
-    type="file"
-    accept=".pdf,.docx,.txt"
-    multiple
-    ref={fileInputRef}
-    onChange={handleFileChange}
-    style={{ display: "none" }}
-  />
-  <button className="btn-add" onClick={() => fileInputRef.current.click()}>
-    + Add Document
-  </button>
-
-  {/* File Previews */}
-  {selectedFiles.length > 0 && (
-    <div className="file-preview-container">
-      {selectedFiles.map((file, index) => (
-        <div key={index} className="file-preview-card">
-          <span className="file-icon">📄</span>
-          <div className="file-details">
-            <div className="file-name">{file.name}</div>
-            <div className="file-type">{file.type || "Unknown Type"}</div>
-          </div>
-          <button
-            className="file-remove"
-            onClick={() => {
-              setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
-            }}
-          >
-            ✖
+          <input
+            type="file"
+            accept=".pdf,.docx,.txt"
+            multiple
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: "none" }}
+          />
+          <button className="btn-add" onClick={() => fileInputRef.current.click()}>
+            + Add Document
           </button>
-        </div>
-      ))}
-    </div>
-  )}
-</aside>
+
+          {selectedFiles.length > 0 && (
+            <div className="file-preview-container">
+              {selectedFiles.map((file, index) => (
+                <div key={index} className="file-preview-card">
+                  <span className="file-icon">📄</span>
+                  <div className="file-details">
+                    <div className="file-name">{file.name}</div>
+                    <div className="file-type">{file.type || "Unknown Type"}</div>
+                  </div>
+                  <button
+                    className="file-remove"
+                    onClick={() => {
+                      setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+                    }}
+                  >
+                    ✖
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
 
         {/* Chat Panel */}
         <section className="panel panel-chat">
           <div className="chat-log">
             {messages.map((msg, i) => (
-              <div key={i} className={`chat-bubble ${msg.role === "user" ? "user-message" : "assistant-message"}`}>
+              <div
+                key={i}
+                className={`chat-bubble ${
+                  msg.role === "user" ? "user-message" : "assistant-message"
+                }`}
+              >
                 <div className="avatar">{msg.role === "user" ? "🙍" : "🤖"}</div>
                 <div className="bubble-content">
                   {msg.file ? (
@@ -252,15 +272,19 @@ setAnalysisResults(structuredResults); // ❌ BAD – remove it
                       <span className="file-icon">📄</span>
                       <div className="file-details">
                         <div className="file-name">{msg.file.name}</div>
-                        <div className="file-type">{msg.file.type || "Unknown Type"}</div>
+                        <div className="file-type">
+                          {msg.file.type || "Unknown Type"}
+                        </div>
                       </div>
                     </div>
                   ) : msg.content === "typing..." ? (
-                    <div className="typing-dots"><span></span><span></span><span></span></div>
+                    <div className="typing-dots">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
                   ) : msg.role === "assistant" ? (
                     <TypewriterBubble text={cleanAssistantResponse(msg.content)} />
-
-
                   ) : (
                     <span>{msg.content}</span>
                   )}
@@ -277,7 +301,11 @@ setAnalysisResults(structuredResults); // ❌ BAD – remove it
               onChange={(e) => setUserInput(e.target.value)}
               placeholder="Can you validate the BEP document?"
             />
-            <button className="chat-send-btn" onClick={sendMessage} disabled={loading}>
+            <button
+              className="chat-send-btn"
+              onClick={sendMessage}
+              disabled={loading}
+            >
               Chat
             </button>
           </div>
@@ -285,29 +313,34 @@ setAnalysisResults(structuredResults); // ❌ BAD – remove it
 
         {/* Results Panel */}
         <aside className="panel panel-results">
-  <div className="panel-title">Results</div>
+          <div className="panel-title">Results</div>
 
-  <div className="results-scrollable">
-    <ul className="result-list">
-      {analysisResults.length > 0 ? (
-        analysisResults.map((item, idx) => (
-          <li key={idx}>
-            <span className={`status-icon ${item.status}`}>
-              {item.status === "success" ? "✔" : item.status === "warning" ? "⚠" : "✖"}
-            </span>
-            {item.text}
-          </li>
-        ))
-      ) : (
-        <li className="placeholder">No results yet. Ask the bot to analyze a document.</li>
-      )}
-    </ul>
-  </div>
+          <div className="results-scrollable">
+            <ul className="result-list">
+              {analysisResults.length > 0 ? (
+                analysisResults.map((item, idx) => (
+                  <li key={idx}>
+                    <span className={`status-icon ${item.status}`}>
+                      {item.status === "success"
+                        ? "✔"
+                        : item.status === "warning"
+                        ? "⚠"
+                        : "✖"}
+                    </span>
+                    {item.text}
+                  </li>
+                ))
+              ) : (
+                <li className="placeholder">
+                  No results yet. Ask the bot to analyze a document.
+                </li>
+              )}
+            </ul>
+          </div>
 
-  <button className="export-btn">Export to PDF</button>
-  <button className="export-btn">Export to CSV</button>
-</aside>
-
+          <button className="export-btn">Export to PDF</button>
+          <button className="export-btn">Export to CSV</button>
+        </aside>
       </div>
     </div>
   );
