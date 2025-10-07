@@ -22,7 +22,7 @@ export default function SignUp() {
 
   return (
     <div className="auth-page">
-      <h1 className="auth-heading">NEO Builder <span>|</span> Validorix</h1>
+      <h1 className="auth-heading">DigiStav <span>|</span> Validorix</h1>
       <form className="auth-card" onSubmit={handleSubmit}>
       
         <h2>Sign Up</h2>

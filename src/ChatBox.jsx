@@ -7,6 +7,8 @@ import { useAuth } from "./auth/AuthContext.jsx";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import autoTable from "jspdf-autotable";
+import AnimatedTyping from "./AnimatedTyping";
+import { Link } from "react-router-dom";
 
 const openai = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
@@ -25,6 +27,17 @@ export default function ChatBox() {
   const [analysisResults, setAnalysisResults] = useState([]);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const navigate = useNavigate();
+// Dynamic placeholder text per role
+const rolePlaceholders = {
+  Investor: "Check if my documentation meets Czech standards.",
+  Designer: "Validate BEP structure and missing sections.",
+  "Site Manager": "Review safety and inspection checklist.",
+  Contractor: "Generate delivery checklist for the client.",
+  Farmer: "Validate documents for grant applications."
+};
+
+const [placeholderText, setPlaceholderText] = useState(rolePlaceholders[selectedRole]);
+const [showPlaceholder, setShowPlaceholder] = useState(true);
 
   const fileInputRef = useRef();
   const { logout } = useAuth();
@@ -54,15 +67,27 @@ export default function ChatBox() {
 
   function cleanAssistantResponse(text) {
     if (!text) return "";
-    return text
+  
+    const cleaned = text
+      // Remove “JSON Array with Key Results” section only, keeping content after it
+      .replace(/JSON\s*Array\s*with\s*Key\s*Results[\s\S]*?```(?:json)?[\s\S]*?```/gi, "")
+      // Clean leftover stray JSON arrays outside code fences
+      .replace(/\[[\s\S]*?\]/g, "")
+      // Remove dangling backticks and commas left behind
+      .replace(/```/g, "")
+      .replace(/,+\s*$/gm, "")
+      // Remove OpenAI references
       .replace(/【[^】]+】/g, "")
+      // Markdown: bold and headers
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
       .replace(/^###\s+(.*)$/gm, "<h3>$1</h3>")
+      // Replace newlines with HTML line breaks
       .replace(/\n{2,}/g, "<br/><br/>")
       .replace(/\n/g, "<br/>")
       .trim();
-  }
-
+  
+    return cleaned;
+  }    
   const sendMessage = async () => {
     if (!userInput.trim() || !threadId) return;
     setLoading(true);
@@ -179,115 +204,275 @@ export default function ChatBox() {
 
     setLoading(false);
   };
-  const exportToPDF = () => {
-    const doc = new jsPDF();
-    const title = "NEO Builder | Validorix";
-    const date = new Date().toLocaleString();
+  // --- PDF text utilities ---
+const BRAND_BLUE = [37, 99, 235];
+
+function stripValidationJson(source) {
+  let txt = source || "";
+
+  // remove “### JSON Array with Key Results” section only (keep what comes after)
+  txt = txt.replace(/###\s*JSON\s*Array\s*with\s*Key\s*Results[\s\S]*?```(?:json)?[\s\S]*?```/gi, "");
+
+  // remove any remaining fenced code blocks
+  txt = txt.replace(/```[\s\S]*?```/g, "");
+
+  // remove stray JSON arrays left outside code fences (defensive)
+  txt = txt.replace(/^\s*\[[\s\S]*?\]\s*$/gm, "");
+
+  // remove OpenAI-style footnote tags and leftover garbage bytes/entities
+  txt = txt.replace(/【[^】]+】/g, "")
+           .replace(/&[a-z0-9#]+;/gi, "")
+           .replace(/[^\x09\x0A\x0D\x20-\x7E\u00A0-\u024F]/g, "");
+
+  // normalize newlines
+  txt = txt.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  return txt;
+}
+
+// Render a paragraph that may contain **bold** segments, with word-wrapping
+function renderRichParagraph(doc, text, x, y, maxWidth, lineHeight, pageBottom, margin) {
+  const segments = text.split(/\*\*(.+?)\*\*/g) // odd indexes are bold
+                       .map((seg, i) => ({ text: seg, bold: i % 2 === 1 }))
+                       .filter(s => s.text.length);
+
+  let currX = x;
+  let currY = y;
+
+  const pushLine = (line, isBold) => {
+    if (currY > pageBottom) {
+      doc.addPage();
+      currY = margin;
+    }
+    doc.setFont("helvetica", isBold ? "bold" : "normal");
+    doc.text(line, currX, currY);
+  };
+
+  // break segments by words and wrap intelligently
+  let line = "";
+  let lineBoldMask = []; // parallel mask of which chars are bold; we’ll render per chunk
+  const flush = () => {
+    if (!line) return;
+    // render a mixed-style line by slicing consecutive bold/plain chunks
+    let idx = 0;
+    while (idx < line.length) {
+      const state = lineBoldMask[idx];
+      let j = idx;
+      while (j < line.length && lineBoldMask[j] === state) j++;
+      const slice = line.slice(idx, j);
+      doc.setFont("helvetica", state ? "bold" : "normal");
+      doc.text(slice, currX, currY, { baseline: "top" });
+      currX += doc.getTextWidth(slice + " ");
+      idx = j;
+    }
+    currX = x;
+    currY += lineHeight;
+    line = "";
+    lineBoldMask = [];
+  };
+
+  const spaceWidth = doc.getTextWidth(" ");
+  const appendWord = (word, isBold) => {
+    const wordWidth = doc.getTextWidth(word);
+    const lineWidth = doc.getTextWidth(line);
+
+    if (lineWidth + (line ? spaceWidth : 0) + wordWidth > maxWidth) {
+      flush();
+    }
+    if (line) {
+      line += " ";
+      lineBoldMask.push(...Array(1).fill(false)); // space non-bold, visual spacing
+    }
+    line += word;
+    lineBoldMask.push(...Array(word.length).fill(isBold));
+  };
+
+  // iterate words preserving bold state
+  segments.forEach(seg => {
+    const words = seg.text.split(/\s+/).filter(Boolean);
+    words.forEach(w => appendWord(w, seg.bold));
+  });
+  flush();
+
+  return currY;
+}
+// Consistent vertical rhythm for PDF
+const SPACING = {
+  paraLine: 16,          // baseline line height
+  paraGap: 6,            // after normal paragraphs
+  bulletGap: 4,          // after bullet paragraphs
+  headingGapBefore: 12,  // space before each ### heading
+  headingGapAfter: 20,     // space after each heading
+};
+function renderCenteredTitle(doc, text, y, pageWidth, color = [37, 99, 235]) {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);              // title size
+  doc.setTextColor(...color);
+  doc.text(text, pageWidth / 2, y, { align: "center" });
+
+  // optional thin underline (60% width, centered)
+  const underlineWidth = pageWidth * 0.60;
+  const startX = (pageWidth - underlineWidth) / 2;
+  doc.setDrawColor(...color);
+  doc.setLineWidth(0.75);
+  doc.line(startX, y + 6, startX + underlineWidth, y + 6);
+
+  // reset defaults for body
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(33, 33, 33);
+
+  return y + 18; // spacing after title
+}
+
+// Render a heading line (### Heading)
+function renderHeading(doc, text, x, y, pageBottom, margin) {
+  if (y > pageBottom) { doc.addPage(); y = margin; }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(...BRAND_BLUE);
+  doc.text(text, x, y);
+  // reset styles for body right away; return y (no extra spacing here)
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(33, 33, 33);
+  return y;
+}
+
+const exportToPDF = () => {
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 48;
+  const contentWidth = pageWidth - margin * 2;
+  const lineHeight = 16;
+  const pageBottom = pageHeight - margin;
+
+  // Header
+  doc.setFillColor(...BRAND_BLUE);
+  doc.rect(0, 0, pageWidth, 60, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("DigiStav | Validorix", margin, 38);
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Exported: ${new Date().toLocaleString()}`, pageWidth - 200, 38);
+
+  let y = 100;
+
+  // Assistant Summary heading
+ // Assistant Summary – centered document title
+y = renderCenteredTitle(doc, "Assistant Summary", y, pageWidth);
+y += 4; // tiny extra breathing room before paragraphs
+
+  // Get and sanitize assistant text
+  const lastAssistantMessage =
+    messages.slice().reverse().find(m => m.role === "assistant")?.content || "No assistant response.";
+
+  const clean = stripValidationJson(lastAssistantMessage);
+
+  // Render line by line: headings and paragraphs with **bold**
+  const lines = clean.split(/\n+/);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(33, 33, 33);
+
+  lines.forEach((raw, idx) => {
+    const line = raw.trim();
+    if (!line) { y += 4; return; } // very small gap for empty lines
   
-    // Header
-    doc.setFontSize(16);
-    doc.setTextColor(40, 40, 40);
-    doc.setFont("helvetica", "bold");
-    doc.text(title, 14, 20);
-  
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100);
-    doc.text(`Exported: ${date}`, 14, 27);
-  
-    // Assistant response
-    const lastAssistantMessage = messages
-      .slice()
-      .reverse()
-      .find((msg) => msg.role === "assistant")?.content || "No assistant response.";
-  
-    doc.setFontSize(12);
-    doc.setTextColor(33, 33, 33);
-    doc.text("Assistant Summary:", 14, 40);
-  
-    // Clean & format content
-    const rawLines = lastAssistantMessage
-      .replace(/<[^>]+>/g, "") // Strip HTML
-      .split("\n")             // Split by lines
-      .map((line) => line.trim())
-      .filter(Boolean);
-  
-    let y = 47;
-    doc.setFontSize(11);
-    rawLines.forEach((line) => {
-      if (/^\*\*(.+?)\*\*$/.test(line)) {
-        // Proper heading format with **heading**
-        const headingText = line.replace(/\*\*/g, "");
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(20, 20, 20);
-        doc.text(headingText, 14, y);
-        y += 8;
-      } else {
-        // Wrap and print normal content
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(50);
-        const wrapped = doc.splitTextToSize(line, 180);
-        wrapped.forEach((wLine) => {
-          doc.text(wLine, 14, y);
-          y += 6;
-        });
-      }
-  
-      // Avoid content going off the page
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-    });
-  
-    // Table of validation results
-    if (analysisResults.length > 0) {
-      const tableData = analysisResults.map((item) => [
-        item.status.toUpperCase(),
-        item.text,
-      ]);
-  
-      autoTable(doc, {
-        startY: y + 5,
-        head: [["Status", "Description"]],
-        body: tableData,
-        styles: {
-          fontSize: 10,
-          cellPadding: 4,
-        },
-        headStyles: {
-          fillColor: [30, 144, 255],
-          textColor: 255,
-          halign: "center",
-        },
-        columnStyles: {
-          0: { cellWidth: 30 },
-          1: { cellWidth: 150 },
-        },
-        didParseCell: function (data) {
-          if (data.section === "body") {
-            if (data.cell.raw.includes("SUCCESS")) {
-              data.cell.styles.textColor = [0, 128, 0];
-            } else if (data.cell.raw.includes("ERROR")) {
-              data.cell.styles.textColor = [255, 0, 0];
-            } else if (data.cell.raw.includes("WARNING")) {
-              data.cell.styles.textColor = [255, 165, 0];
-            }
-          }
-        },
-      });
-    } else {
-      doc.text("No validation results to display.", 14, y + 10);
+    // --- Headings: "### Heading"
+    if (/^###\s+/.test(line)) {
+      // Add space BEFORE every heading, including the second+ ones
+      y += SPACING.headingGapBefore;
+      const h = line.replace(/^###\s+/, "").trim();
+      y = renderHeading(doc, h, margin, y, pageBottom, margin);
+      // Add consistent space AFTER heading
+      y += SPACING.headingGapAfter;
+      return;
     }
   
-    doc.save("validation-summary.pdf");
-  };
+    // --- Bullets: "- text" -> "• text"
+    if (/^-\s+/.test(line)) {
+      const bullet = "• " + line.replace(/^-\s+/, "");
+      y = renderRichParagraph(
+        doc, bullet, margin, y, contentWidth, SPACING.paraLine, pageBottom, margin
+      );
+      y += SPACING.bulletGap;
+      return;
+    }
+  
+    // --- Normal paragraph
+    y = renderRichParagraph(
+      doc, line, margin, y, contentWidth, SPACING.paraLine, pageBottom, margin
+    );
+    y += SPACING.paraGap;
+  });
+  
+  // Validation Results table
+  if (analysisResults.length > 0) {
+    y += 10;
+    y = renderHeading(doc, "Validation Results", margin, y, pageBottom, margin) - 8;
+
+    const tableData = analysisResults.map(i => [i.status.toUpperCase(), i.text]);
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Status", "Description"]],
+      body: tableData,
+      margin: { left: margin, right: margin },
+      styles: { fontSize: 10, cellPadding: 6, lineWidth: 0.1 },
+      headStyles: { fillColor: BRAND_BLUE, textColor: 255, fontStyle: "bold" },
+      columnStyles: { 0: { cellWidth: 90, halign: "center" }, 1: { cellWidth: contentWidth - 90 } },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.column.index === 0) {
+          const val = String(data.cell.raw).toLowerCase();
+          if (val.includes("success")) data.cell.styles.textColor = [0, 128, 0];
+          else if (val.includes("error")) data.cell.styles.textColor = [220, 38, 38];
+          else if (val.includes("warning")) data.cell.styles.textColor = [234, 179, 8];
+        }
+      }
+    });
+    y = doc.lastAutoTable.finalY + 20;
+  }
+
+  // Footer
+  if (y > pageBottom - 24) { doc.addPage(); y = margin; }
+  doc.setDrawColor(220, 220, 220);
+  doc.line(margin, y, pageWidth - margin, y);
+  doc.setFontSize(10);
+  doc.setTextColor(120);
+  doc.text("Generated automatically by DigiStav | Validorix Assistant", margin, y + 14);
+
+  doc.save("validation-summary.pdf");
+};
+      const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+
+useEffect(() => {
+  document.body.setAttribute("data-theme", theme);
+  localStorage.setItem("theme", theme);
+}, [theme]);
+
+const toggleTheme = () => {
+  setTheme((prev) => (prev === "light" ? "dark" : "light"));
+};
+useEffect(() => {
+  setPlaceholderText(rolePlaceholders[selectedRole]); // update on role change
+  setShowPlaceholder(true); // reset visible state
+
+  const timer = setTimeout(() => {
+    setShowPlaceholder(false); // hide after 2 seconds
+  }, 2000);
+
+  return () => clearTimeout(timer);
+}, [selectedRole]);
+
    return (
     <div className="dashboard-container">
   {/* Navbar */}
       <header className="header-bar">
         <div className="brand-title">
-          NEO Builder <span className="sub-brand">| Validorix</span>
+        DigiStav <span className="sub-brand">| Validorix</span>
         </div>
         <div className="controls">
           <select
@@ -301,6 +486,9 @@ export default function ChatBox() {
             <option>Contractor</option>
             <option>Farmer</option>
           </select>
+          <button className="theme-toggle-btn" onClick={toggleTheme}>
+  {theme === "light" ? "🌙 Dark" : "☀️ Light"}
+</button>
 
           <div className="lang-switcher-toggle">
             <div
@@ -315,6 +503,7 @@ export default function ChatBox() {
               </div>
               <div className="toggle-indicator" />
             </div>
+            
           </div>
 
           {/* Profile dropdown */}
@@ -331,6 +520,7 @@ export default function ChatBox() {
               </div>
             )}
           </div>
+          <Link className="theme-toggle-btn" to="/resources">Resources</Link>
         </div>
       </header>
 
@@ -378,49 +568,46 @@ export default function ChatBox() {
         {/* Chat Panel */}
         <section className="panel panel-chat">
           <div className="chat-log">
-            {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`chat-bubble ${
-                  msg.role === "user" ? "user-message" : "assistant-message"
-                }`}
-              >
-                <div className="avatar">{msg.role === "user" ? "🙍" : "🤖"}</div>
-                <div className="bubble-content">
-                  {msg.file ? (
-                    <div className="file-preview-card">
-                      <span className="file-icon">📄</span>
-                      <div className="file-details">
-                        <div className="file-name">{msg.file.name}</div>
-                        <div className="file-type">
-                          {msg.file.type || "Unknown Type"}
-                        </div>
-                      </div>
-                    </div>
-                  ) : msg.content === "typing..." ? (
-                    <div className="typing-dots">
-                      <span></span>
-                      <span></span>
-                      <span></span>
-                    </div>
-                  ) : msg.role === "assistant" ? (
-                    <TypewriterBubble text={cleanAssistantResponse(msg.content)} />
-                  ) : (
-                    <span>{msg.content}</span>
-                  )}
-                </div>
-              </div>
-            ))}
+          {messages.map((msg, i) => (
+  <div
+    key={i}
+    className={`chat-bubble ${
+      msg.role === "user" ? "user-message" : "assistant-message"
+    }`}
+  >
+    <div className="avatar">{msg.role === "user" ? "🙍" : "🤖"}</div>
+    <div className="bubble-content">
+      {msg.file ? (
+        <div className="file-preview-card">
+          <span className="file-icon">📄</span>
+          <div className="file-details">
+            <div className="file-name">{msg.file.name}</div>
+            <div className="file-type">
+              {msg.file.type || "Unknown Type"}
+            </div>
+          </div>
+        </div>
+      ) : msg.content === "typing..." ? (
+        <AnimatedTyping />
+      ) : msg.role === "assistant" ? (
+        <TypewriterBubble text={cleanAssistantResponse(msg.content)} />
+      ) : (
+        <span>{msg.content}</span>
+      )}
+    </div>
+  </div>
+))}
           </div>
 
           <div className="chat-input-row">
-            <input
-              type="text"
-              className="chat-textbox"
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Can you validate the BEP document?"
-            />
+          <input
+  type="text"
+  className="chat-textbox"
+  value={userInput}
+  onChange={(e) => setUserInput(e.target.value)}
+  placeholder={showPlaceholder ? placeholderText : ""}
+/>
+
             <button
               className="chat-send-btn"
               onClick={sendMessage}

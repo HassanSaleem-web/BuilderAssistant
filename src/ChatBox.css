@@ -36,7 +36,7 @@ body {
 .brand-title {
   font-size: 1.3rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #6b7280;
 }
 
 .sub-brand {
@@ -141,7 +141,7 @@ body {
   font-weight: 600;
   font-size: 1rem;
   margin-bottom: 1rem;
-  color: #111827;
+  color: #6b7280;
 }
 
 .panel-docs,
@@ -459,4 +459,108 @@ body {
   padding: 6px 0;
   width: 100%;
   text-align: left;
+}
+/* 🧾 Improve readability in Results panel */
+.panel-results {
+  background-color: #ffffff;
+  color: #1a1a1a; /* darker text base */
+}
+
+.result-list li {
+  color: #1f2937; /* darker gray for text */
+  background-color: #f3f4f6; /* subtle contrast */
+  font-weight: 500;
+}
+
+.result-list li:hover {
+  background-color: #e5e7eb; /* slight hover highlight */
+}
+
+.status-icon.success {
+  color: #059669; /* darker green for better contrast */
+}
+
+.status-icon.error {
+  color: #dc2626; /* darker red */
+}
+
+.status-icon.warning {
+  color: #d97706; /* amber for warnings if added later */
+}
+
+.result-list .placeholder {
+  color: #374151; /* darker placeholder text */
+  font-style: italic;
+}
+/* 🌗 THEME TOGGLE */
+.theme-toggle-btn {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  background-color: #e5e7eb;
+}
+
+/* 🌙 DARK MODE */
+body[data-theme="dark"] {
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+body[data-theme="dark"] .header-bar {
+  background-color: #1f2937;
+  color: #f9fafb;
+}
+
+body[data-theme="dark"] .panel {
+  background-color: #1e293b;
+  color: #f9fafb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+body[data-theme="dark"] .chat-textbox {
+  background-color: #111827;
+  color: #f9fafb;
+  border: 1px solid #374151;
+}
+
+body[data-theme="dark"] .chat-send-btn {
+  background-color: #2563eb;
+}
+
+body[data-theme="dark"] .result-list li {
+  background-color: #2d3748;
+  color: #f1f5f9;
+}
+
+body[data-theme="dark"] .panel-results .panel-title {
+  color: #e5e7eb;
+}
+
+body[data-theme="dark"] .export-btn {
+  background-color: #4b5563;
+}
+
+body[data-theme="dark"] .theme-toggle-btn {
+  border: 1px solid #4b5563;
+  color: #f9fafb;
+}
+
+body[data-theme="dark"] .theme-toggle-btn:hover {
+  background-color: #374151;
+}
+.chat-textbox::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+
+.chat-textbox:not(:placeholder-shown)::placeholder {
+  opacity: 0;
 }
