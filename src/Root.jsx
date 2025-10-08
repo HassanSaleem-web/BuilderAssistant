@@ -15,11 +15,9 @@ export default function Root() {
 
   return (
     <>
-      {!isAuthPage && (
+      {/* {!isAuthPage && (
         <header className="header-bar">
           <nav className="controls">
-            {/* Show Resources link only when logged in */}
-            {user && <Link to="/resources" className="btn-secondary">Resources</Link>}
 
             {!user ? (
               <>
@@ -29,7 +27,7 @@ export default function Root() {
             ) : null}
           </nav>
         </header>
-      )}
+      )} */}
 
       <Routes>
         <Route

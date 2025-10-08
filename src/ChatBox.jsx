@@ -4,11 +4,16 @@ import "./ChatBox.css";
 import TypewriterBubble from "./TypewriterBubble";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext.jsx";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-import autoTable from "jspdf-autotable";
 import AnimatedTyping from "./AnimatedTyping";
 import { Link } from "react-router-dom";
+import { generateGrokSummary } from "./utils/mistralExport.js";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import { saveAs } from "file-saver";
+
+// ✅ Dynamic Mammoth import — always works in browser
+
+
+
 
 const openai = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
@@ -26,6 +31,8 @@ export default function ChatBox() {
   const [selectedLanguage, setSelectedLanguage] = useState("EN");
   const [analysisResults, setAnalysisResults] = useState([]);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+  const [exportLoading, setExportLoading] = useState({ txt: false, docx: false });
   const navigate = useNavigate();
 // Dynamic placeholder text per role
 const rolePlaceholders = {
@@ -78,16 +85,19 @@ const [showPlaceholder, setShowPlaceholder] = useState(true);
       .replace(/,+\s*$/gm, "")
       // Remove OpenAI references
       .replace(/【[^】]+】/g, "")
+      // Remove any line containing “json” (case-insensitive)
+      .replace(/^.*\bjson\b.*$/gim, "")
       // Markdown: bold and headers
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
       .replace(/^###\s+(.*)$/gm, "<h3>$1</h3>")
+      .replace(/^####\s+(.*)$/gm, "<h4>$1</h4>")
       // Replace newlines with HTML line breaks
       .replace(/\n{2,}/g, "<br/><br/>")
       .replace(/\n/g, "<br/>")
       .trim();
   
     return cleaned;
-  }    
+  }
   const sendMessage = async () => {
     if (!userInput.trim() || !threadId) return;
     setLoading(true);
@@ -338,115 +348,157 @@ function renderHeading(doc, text, x, y, pageBottom, margin) {
   return y;
 }
 
-const exportToPDF = () => {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 48;
-  const contentWidth = pageWidth - margin * 2;
-  const lineHeight = 16;
-  const pageBottom = pageHeight - margin;
+// New Export Handler
 
-  // Header
-  doc.setFillColor(...BRAND_BLUE);
-  doc.rect(0, 0, pageWidth, 60, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("DigiStav | Validorix", margin, 38);
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Exported: ${new Date().toLocaleString()}`, pageWidth - 200, 38);
+// --- Export Handlers with Button-Specific Loading States ---
 
-  let y = 100;
+const exportToTXT = async () => {
+  try {
+    setExportLoading((p) => ({ ...p, txt: true }));
 
-  // Assistant Summary heading
- // Assistant Summary – centered document title
-y = renderCenteredTitle(doc, "Assistant Summary", y, pageWidth);
-y += 4; // tiny extra breathing room before paragraphs
-
-  // Get and sanitize assistant text
-  const lastAssistantMessage =
-    messages.slice().reverse().find(m => m.role === "assistant")?.content || "No assistant response.";
-
-  const clean = stripValidationJson(lastAssistantMessage);
-
-  // Render line by line: headings and paragraphs with **bold**
-  const lines = clean.split(/\n+/);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(11);
-  doc.setTextColor(33, 33, 33);
-
-  lines.forEach((raw, idx) => {
-    const line = raw.trim();
-    if (!line) { y += 4; return; } // very small gap for empty lines
-  
-    // --- Headings: "### Heading"
-    if (/^###\s+/.test(line)) {
-      // Add space BEFORE every heading, including the second+ ones
-      y += SPACING.headingGapBefore;
-      const h = line.replace(/^###\s+/, "").trim();
-      y = renderHeading(doc, h, margin, y, pageBottom, margin);
-      // Add consistent space AFTER heading
-      y += SPACING.headingGapAfter;
-      return;
-    }
-  
-    // --- Bullets: "- text" -> "• text"
-    if (/^-\s+/.test(line)) {
-      const bullet = "• " + line.replace(/^-\s+/, "");
-      y = renderRichParagraph(
-        doc, bullet, margin, y, contentWidth, SPACING.paraLine, pageBottom, margin
-      );
-      y += SPACING.bulletGap;
-      return;
-    }
-  
-    // --- Normal paragraph
-    y = renderRichParagraph(
-      doc, line, margin, y, contentWidth, SPACING.paraLine, pageBottom, margin
-    );
-    y += SPACING.paraGap;
-  });
-  
-  // Validation Results table
-  if (analysisResults.length > 0) {
-    y += 10;
-    y = renderHeading(doc, "Validation Results", margin, y, pageBottom, margin) - 8;
-
-    const tableData = analysisResults.map(i => [i.status.toUpperCase(), i.text]);
-
-    autoTable(doc, {
-      startY: y,
-      head: [["Status", "Description"]],
-      body: tableData,
-      margin: { left: margin, right: margin },
-      styles: { fontSize: 10, cellPadding: 6, lineWidth: 0.1 },
-      headStyles: { fillColor: BRAND_BLUE, textColor: 255, fontStyle: "bold" },
-      columnStyles: { 0: { cellWidth: 90, halign: "center" }, 1: { cellWidth: contentWidth - 90 } },
-      didParseCell: (data) => {
-        if (data.section === "body" && data.column.index === 0) {
-          const val = String(data.cell.raw).toLowerCase();
-          if (val.includes("success")) data.cell.styles.textColor = [0, 128, 0];
-          else if (val.includes("error")) data.cell.styles.textColor = [220, 38, 38];
-          else if (val.includes("warning")) data.cell.styles.textColor = [234, 179, 8];
-        }
-      }
+    const summaryText = await generateGrokSummary({
+      messages,
+      analysisResults,
+      role: selectedRole,
+      language: selectedLanguage,
     });
-    y = doc.lastAutoTable.finalY + 20;
+
+    const cleaned = summaryText
+      .replace(/\u0000/g, "")
+      .replace(/[\u200B-\u200F\uFEFF]/g, "")
+      .replace(/[^\P{C}\n]/gu, " ")
+      .normalize("NFC")
+      .trim();
+
+    const title = "DigiStav | Validorix Report";
+    const date = `Exported: ${new Date().toLocaleString()}`;
+    const header = `${title}\n\n${date}\n\n------------------------------------------\n\n`;
+    const fullText = header + cleaned + "\n";
+
+    const txtBlob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
+    const txtUrl = URL.createObjectURL(txtBlob);
+    const txtLink = document.createElement("a");
+    txtLink.href = txtUrl;
+    txtLink.download = "NEO_Builder_Report.txt";
+    txtLink.click();
+    URL.revokeObjectURL(txtUrl);
+  } catch (err) {
+    console.error("TXT export failed:", err);
+    alert("Failed to export TXT file. Check console for details.");
+  } finally {
+    setExportLoading((p) => ({ ...p, txt: false }));
   }
-
-  // Footer
-  if (y > pageBottom - 24) { doc.addPage(); y = margin; }
-  doc.setDrawColor(220, 220, 220);
-  doc.line(margin, y, pageWidth - margin, y);
-  doc.setFontSize(10);
-  doc.setTextColor(120);
-  doc.text("Generated automatically by DigiStav | Validorix Assistant", margin, y + 14);
-
-  doc.save("validation-summary.pdf");
 };
-      const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+
+const exportToDOCX = async () => {
+  try {
+    setExportLoading((p) => ({ ...p, docx: true }));
+
+    const summaryText = await generateGrokSummary({
+      messages,
+      analysisResults,
+      role: selectedRole,
+      language: selectedLanguage,
+    });
+
+    const cleaned = summaryText
+      .replace(/\u0000/g, "")
+      .replace(/[\u200B-\u200F\uFEFF]/g, "")
+      .replace(/[^\P{C}\n]/gu, " ")
+      .normalize("NFC")
+      .trim();
+
+    const title = "DigiStav | Validorix Report";
+    const date = `Exported: ${new Date().toLocaleString()}`;
+    const fullText = `${title}\n\n${date}\n\n------------------------------------------\n\n${cleaned}\n`;
+
+    const txtBlob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
+    const textFromFile = await txtBlob.text();
+
+    const doc = new Document({
+      styles: {
+        paragraphStyles: [
+          {
+            id: "TitleStyle",
+            name: "TitleStyle",
+            run: { size: 36, bold: true, color: "FFFFFF" },
+            paragraph: {
+              alignment: "center",
+              spacing: { after: 400 },
+              shading: { fill: "2563EB" },
+            },
+          },
+          {
+            id: "HeadingStyle",
+            name: "HeadingStyle",
+            run: { bold: true, color: "2563EB", size: 26 },
+            paragraph: {
+              spacing: { before: 300, after: 120 },
+              alignment: "left",
+            },
+          },
+          {
+            id: "BodyText",
+            name: "BodyText",
+            run: { size: 22, color: "1F2937" },
+            paragraph: {
+              spacing: { line: 300, after: 160 },
+              alignment: "justify",
+            },
+          },
+          {
+            id: "FooterText",
+            name: "FooterText",
+            run: { color: "808080", italics: true, size: 18 },
+            paragraph: {
+              alignment: "center",
+              spacing: { before: 600 },
+            },
+          },
+        ],
+      },
+      sections: [
+        {
+          properties: {
+            page: {
+              margin: { top: 720, bottom: 720, left: 720, right: 720 },
+            },
+          },
+          children: [
+            new Paragraph({ text: title, style: "TitleStyle" }),
+            new Paragraph({ text: date, alignment: "center", style: "BodyText" }),
+
+            ...textFromFile.split(/\n+/).map((line) => {
+              const trimmed = line.trim();
+              if (!trimmed) return new Paragraph("");
+              if (/^([A-Z][A-Za-z\s]+:)/.test(trimmed)) {
+                return new Paragraph({
+                  text: trimmed.replace(":", "").trim(),
+                  style: "HeadingStyle",
+                });
+              } else {
+                return new Paragraph({ text: trimmed, style: "BodyText" });
+              }
+            }),
+
+            new Paragraph({
+              text: "Generated automatically by DigiStav | Validorix Assistant",
+              style: "FooterText",
+            }),
+          ],
+        },
+      ],
+    });
+
+    const docxBlob = await Packer.toBlob(doc);
+    saveAs(docxBlob, "NEO_Builder_Report.docx");
+  } catch (err) {
+    console.error("DOCX export failed:", err);
+    alert("Failed to export DOCX file. Check console for details.");
+  } finally {
+    setExportLoading((p) => ({ ...p, docx: false }));
+  }
+};
 
 useEffect(() => {
   document.body.setAttribute("data-theme", theme);
@@ -520,7 +572,7 @@ useEffect(() => {
               </div>
             )}
           </div>
-          <Link className="theme-toggle-btn" to="/resources">Resources</Link>
+          
         </div>
       </header>
 
@@ -645,7 +697,24 @@ useEffect(() => {
             </ul>
           </div>
 
-          <button className="export-btn" onClick={exportToPDF}>Export to PDF</button>
+          <div className="export-buttons">
+  <button
+    className="export-btn"
+    onClick={exportToTXT}
+    disabled={exportLoading.txt}
+  >
+    {exportLoading.txt ? "Generating TXT..." : "Export TXT"}
+  </button>
+
+  <button
+    className="export-btn"
+    onClick={exportToDOCX}
+    disabled={exportLoading.docx}
+  >
+    {exportLoading.docx ? "Generating DOCX..." : "Export DOCX"}
+  </button>
+</div>
+
 
           
         </aside>

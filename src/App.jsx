@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ChatBox from './ChatBox';
+import './index.css';
 
 function App() {
   const [messages, setMessages] = useState([]);
@@ -10,7 +11,6 @@ function App() {
 
   return (
     <div className="app-container">
-     
       <ChatBox messages={messages} addMessage={addMessage} />
     </div>
   );
