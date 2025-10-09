@@ -273,30 +273,88 @@ body {
   align-self: flex-start;
 }
 
-/* 📄 FILE PREVIEW */
+/* FILE PREVIEW CARD FIXED LAYOUT */
 .file-preview-card {
-  background-color: #f9fafb;
+  position: relative; /* allows absolute positioning of the close button */
+  background-color: var(--panel-bg, #f9fafb);
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  padding: 12px 14px 10px 14px;
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  transition: all 0.2s ease-in-out;
+  cursor: default;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  margin-right: 12px;
+}
+
+.file-preview-card:hover {
+  background-color: #f3f4f6;
+  transform: translateY(-1px);
+}
+
+/* File icon + details */
+.file-icon {
+  font-size: 1.3rem;
+  color: #2563eb;
+  flex-shrink: 0;
 }
 
 .file-details {
   display: flex;
   flex-direction: column;
-  font-size: 0.85rem;
+  gap: 2px;
+  overflow: hidden;
+  flex: 1;
 }
 
 .file-name {
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .file-type {
+  font-size: 0.75rem;
   color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+/* Close (✖) button in top-right corner */
+.file-remove {
+  position: absolute;
+  top: -2px;
+  right: -8px;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.1s ease-in-out;
+}
+
+.file-remove:hover {
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+/* Container for all file previews */
+.file-preview-container {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
 
 /* 🔤 TYPING DOTS */
 .typing-dots {
