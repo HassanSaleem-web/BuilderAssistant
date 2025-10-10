@@ -108,3 +108,8 @@ html, body {
   margin: 0;
   padding: 0;
 }
+/* Ensure body and root scale properly on mobile */
+body, #root {
+  width: 100%;
+  overflow-x: hidden;
+}
