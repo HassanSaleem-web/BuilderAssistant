@@ -6,6 +6,10 @@ import Login from "./pages/Login.jsx";
 import SignUp from "./pages/Signup.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Resources from "./pages/Resources.jsx"; // ← NEW
+import Subscribe from "./pages/subscribe.jsx";
+
+// inside <Routes>
+
 
 export default function Root() {
   const { user, logout } = useAuth();
@@ -50,6 +54,7 @@ export default function Root() {
         <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
         <Route path="/signup" element={!user ? <SignUp /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />
+        <Route path="/subscribe" element={<Subscribe />} />
       </Routes>
     </>
   );

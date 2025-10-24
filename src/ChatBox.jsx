@@ -730,7 +730,13 @@ import AnimatedTyping from "./AnimatedTyping";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { saveAs } from "file-saver";
 
+
+
+
 export default function ChatBox() {
+  const [creditAnim, setCreditAnim] = useState(false);
+
+  const { user, setUser } = useAuth();
   const [userInput, setUserInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -788,8 +794,81 @@ export default function ChatBox() {
       .replace(/\n/g, "<br/>")
       .trim();
   }
+ // 🔁 Replace the whole function with this
+ const deductCreditsFromBackend = async (amount = 1) => {
+  // Normalize amount
+  const amt = Math.max(1, Math.floor(amount));
 
-  /* ------------------------------
+  // Snapshot values before any async work to avoid stale-closure issues
+  const AUTH_API = (import.meta.env.VITE_AUTH_API_URL || "").replace(/\/$/, "");
+  const uid = user?._id;
+
+  if (!uid || !AUTH_API) {
+    console.warn("Skipping credit deduction: missing user ID or AUTH_API");
+    return;
+  }
+
+  // 1) Optimistic update so UI moves immediately
+  setUser((prev) => {
+    if (!prev) return prev;
+    const current = typeof prev.creditsLeft === "number" ? prev.creditsLeft : 0;
+    const nextCredits = Math.max(current - amt, 0);
+    const optimistic = { ...prev, creditsLeft: nextCredits };
+    try { localStorage.setItem("user", JSON.stringify(optimistic)); } catch {}
+    return optimistic;
+  });
+  setCreditAnim(true);
+  setTimeout(() => setCreditAnim(false), 600);
+
+  // 2) Call backend to persist (server is authoritative)
+  try {
+    const res = await fetch(`${AUTH_API}/api/auth/deduct-credits`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      credentials: "include", // keep cookies if your auth uses them
+      body: JSON.stringify({ userId: uid, amount: amt }),
+    });
+
+    // Attempt to parse JSON even on non-2xx for better diagnostics
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+
+    if (res.ok && data && typeof data.creditsLeft === "number") {
+      // 3) Reconcile with server value
+      setUser((prev) => {
+        if (!prev) return prev;
+        const corrected = { ...prev, creditsLeft: data.creditsLeft };
+        try { localStorage.setItem("user", JSON.stringify(corrected)); } catch {}
+        return corrected;
+      });
+    } else {
+      // 4) Roll back the optimistic update if server rejected it
+      setUser((prev) => {
+        if (!prev) return prev;
+        const current = typeof prev.creditsLeft === "number" ? prev.creditsLeft : 0;
+        const rolledBack = { ...prev, creditsLeft: current + amt };
+        try { localStorage.setItem("user", JSON.stringify(rolledBack)); } catch {}
+        return rolledBack;
+      });
+      console.warn("❌ Credit deduction failed:", data?.message || res.status);
+    }
+  } catch (err) {
+    // 5) Network error → rollback optimistic update
+    setUser((prev) => {
+      if (!prev) return prev;
+      const current = typeof prev.creditsLeft === "number" ? prev.creditsLeft : 0;
+      const rolledBack = { ...prev, creditsLeft: current + amt };
+      try { localStorage.setItem("user", JSON.stringify(rolledBack)); } catch {}
+      return rolledBack;
+    });
+    console.error("⚠️ Error deducting credits:", err);
+  }
+};
+   /* ------------------------------
      File handling
   ------------------------------ */
   const handleFileChange = (e) => {
@@ -805,43 +884,53 @@ export default function ChatBox() {
   const sendMessage = async () => {
     if (!userInput.trim()) return;
     setLoading(true);
-
+  
     const userMessage = { role: "user", content: userInput };
     setMessages((prev) => [...prev, userMessage, { role: "assistant", content: "typing..." }]);
     setUserInput("");
-
+  
     try {
       const formData = new FormData();
       formData.append("message", userInput);
       formData.append("role", selectedRole);
       formData.append("language", selectedLanguage);
       selectedFiles.forEach((f) => formData.append("files", f));
-
+  
       const res = await fetch("https://builderbackend-v7n4.onrender.com/api/ask", {
         method: "POST",
         body: formData,
       });
-
+  
+      // --------------------------
+      // 🧩 Handle Backend Failures
+      // --------------------------
       if (!res.ok) {
-        // Handle timeout or 5xx
-        let replyMsg = "⚠️ The assistant took too long to respond. Please try again.";
-        if (res.status !== 504) replyMsg = `❌ Server error (${res.status}).`;
-
-        setMessages((prev) => {
-          const updated = [...prev];
-          const typingIndex = updated.findIndex((m) => m.content === "typing...");
-          if (typingIndex !== -1)
-            updated[typingIndex] = { role: "assistant", content: replyMsg };
-          return updated;
-        });
+        const replyMsg =
+          res.status === 504
+            ? "⚠️ The assistant took too long to respond. Please try again."
+            : `❌ Server error (${res.status}).`;
+  
+            setMessages((prev) => {
+              const updated = [...prev];
+              const typingIndex = updated.findIndex((m) => m.content === "typing...");
+              if (typingIndex !== -1)
+                updated[typingIndex] = { role: "assistant", content: replyMsg };
+              return updated;
+            });
+            
+        // Deduct 1 credit even if the request fails
+        await deductCreditsFromBackend();
         setLoading(false);
         return;
       }
-
+  
+      // --------------------------
+      // ✅ Handle Successful Response
+      // --------------------------
       const data = await res.json();
       const assistantReply = data.reply || "No response received.";
       const results = data.results || [];
-
+  
       setMessages((prev) => {
         const updated = [...prev];
         const typingIndex = updated.findIndex((m) => m.content === "typing...");
@@ -849,9 +938,14 @@ export default function ChatBox() {
           updated[typingIndex] = { role: "assistant", content: assistantReply };
         return updated;
       });
+  
       setAnalysisResults(results);
+  
+      // ✅ Deduct credits on successful response
+      await deductCreditsFromBackend();
     } catch (err) {
       console.error("Backend error:", err);
+  
       setMessages((prev) => {
         const updated = [...prev];
         const typingIndex = updated.findIndex((m) => m.content === "typing...");
@@ -862,11 +956,14 @@ export default function ChatBox() {
           };
         return updated;
       });
+  
+      // Deduct 1 credit even for network errors
+      await deductCreditsFromBackend();
     }
-
+  
     setLoading(false);
   };
-
+  
   /* ------------------------------
      Export summary (TXT / DOCX)
   ------------------------------ */
@@ -956,6 +1053,7 @@ export default function ChatBox() {
               <div className="toggle-indicator" />
             </div>
           </div>
+         
 
           <div className="profile-dropdown">
             <div
@@ -1101,6 +1199,14 @@ export default function ChatBox() {
           </div>
         </aside>
       </div>
+      {user && (
+  <div className={`credit-display ${creditAnim ? "credit-anim" : ""}`}>
+    <div className="credit-dot" />
+    <span>{user.creditsLeft} free credits remaining</span>
+  </div>
+)}
+
+
     </div>
   );
 }
