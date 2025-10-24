@@ -39,6 +39,9 @@ export default function SignUp() {
       <h1 className="auth-heading">
         DigiStav <span>|</span> Validorix
       </h1>
+      <p className="auth-tagline">
+  AI validation for construction documents — faster, clearer, compliant.
+</p>
 
       <form className="auth-card" onSubmit={handleSubmit}>
         <h2>Sign Up</h2>

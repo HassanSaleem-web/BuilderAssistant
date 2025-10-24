@@ -1,4 +1,6 @@
 /* src/styles/auth.css */
+/* Fonts: Plus Jakarta Sans (headings) + Inter (UI/body) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 
 /* ====== Design tokens ====== */
 :root {
@@ -95,6 +97,7 @@
   position: relative;
   isolation: isolate;
   animation: cardFloat .6s ease-out;
+  margin-bottom: 40px;
 }
 
 .auth-card::before {
@@ -118,6 +121,8 @@
   font-weight: 700;
   color: var(--text);
   letter-spacing: .2px;
+  position: relative;          /* required */
+  left: 220px;                  /* tweak value as desired */
 }
 
 /* ====== Alerts ====== */
@@ -133,7 +138,7 @@
 
 /* ====== Inputs ====== */
 .auth-card input {
-  width: 100%;
+  width: 80%;
   margin: 10px 0;
   padding: 14px 14px;
   font-size: 15px;
@@ -144,7 +149,11 @@
   outline: none;
   transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
 }
-
+.auth-card input {
+  width: 80%;
+  margin: 10px 0 20px 36px;  /* small shift to the right */
+  /* ...rest unchanged... */
+}
 .auth-card input::placeholder { color: var(--muted); }
 
 .auth-card input:hover {
@@ -166,8 +175,9 @@
 /* ====== Button ====== */
 .auth-card button[type="submit"],
 .auth-card button {
-  width: 100%;
+  width: 85%;
   margin-top: 8px;
+  margin: 10px 0 20px 36px;
   padding: 14px 16px;
   border: 0;
   border-radius: 12px;
@@ -226,4 +236,55 @@
 @media (max-width: 420px) {
   .auth-card { padding: 20px; border-radius: 14px; }
   .auth-heading { font-size: 30px; }
+}
+/* global font smoothing */
+html, body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* default UI font */
+.auth-page {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+/* hero brand title */
+.auth-heading {
+  font-family: "Plus Jakarta Sans", Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+/* card title */
+.auth-card h2 {
+  font-family: "Plus Jakarta Sans", Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 700;
+}
+
+/* inputs/buttons stay super-readable */
+.auth-card input,
+.auth-card button {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-feature-settings: "tnum" 1, "lnum" 1; /* tabular lining numbers -> better for passwords, codes */
+}
+/* Tagline under the main brand heading */
+.auth-tagline {
+  margin: -100px 0 -40px;          /* pulls it a bit closer to the heading */
+  text-align: center;
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: .2px;
+  font-size: clamp(14px, 1.4vw, 18px);
+  opacity: .95;
+}
+
+/* Optional: subtle glow on dark backgrounds */
+.auth-tagline {
+  text-shadow: 0 1px 0 rgba(0,0,0,.35);
+}
+
+/* Tighten spacing slightly on small screens */
+@media (max-width: 520px) {
+  .auth-tagline { margin: -2px 0 14px; }
 }
