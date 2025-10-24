@@ -1,287 +1,235 @@
-/* src/styles/subscribe.css (SCOPED) */
+/* ===== Credit Packs (scoped) ===== */
+.sub2 {
+  --card: #111827;
+  --ink: #e5e7eb;
+  --muted: #9ca3af;
+  --ring: rgba(59, 130, 246, 0.35);
+  --grad1: linear-gradient(135deg, #1f2937 0%, #0f172a 100%);
+  --accent: #3b82f6;
+  --accent-2: #8b5cf6;
+}
 
-/* ---------- Scope tokens to this page only ---------- */
-.sub-page {
-    --bg: #f4f7fb;
-    --card: #ffffff;
-    --text: #0f172a;
-    --muted: #6b7280;
-    --line: #e5e7eb;
-    --brand: #1285d7;
-    --brand-dark: #0e73bb;
-    --ring: rgba(18,133,215,.22);
-    --radius: 18px;
-    --shadow: 0 18px 60px rgba(15, 23, 42, .12);
-  }
-  
-  /* ---------- Page Shell ---------- */
-  .sub-page {
-    min-height: 100dvh;
-    display: grid;
-    place-items: center;
-    padding: 28px 18px;
-    background: var(--bg);
-    color: var(--text);
-  }
-  
-  .sub-page .sub-shell {
-    width: 100%;
-    max-width: 980px;
-    display: grid;
-    place-items: center;
-    gap: 22px;
-  }
-  
-  /* Brand header (optional) */
-  .sub-page .sub-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #3a4a62;
-    opacity: .9;
-  }
-  .sub-page .sub-logo {
-    width: 28px; height: 28px; border-radius: 6px;
-    background: linear-gradient(135deg, #34d399, #1285d7);
-  }
-  .sub-page .sub-brand-name { font-weight: 700; letter-spacing: .2px; }
-  
-  /* ---------- Card ---------- */
-  .sub-page .sub-card {
-    width: 360px; /* tight mobile frame like the screenshot */
-    background: var(--card);
-    border-radius: 22px;
-    box-shadow: var(--shadow);
-    border: 1px solid var(--line);
-    padding: 18px 18px 20px;
-  }
-  
-  /* card header */
-  .sub-page .sub-card-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 6px;
-  }
-  .sub-page .sub-step {
-    font-size: 11px;
-    letter-spacing: .12em;
-    color: var(--muted);
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-  .sub-page .sub-menu {
-    border: 0;
-    background: transparent;
-    color: #9aa3b2;
-    font-size: 20px;
-    line-height: 1;
-    padding: 0 6px;
-    cursor: pointer;
-  }
-  
-  /* title */
-  .sub-page .sub-title {
-    font-size: 18px;
-    line-height: 1.35;
-    margin: 6px 0 12px;
-    font-weight: 800;
-    color: #213041;
-  }
-  
-  /* ---------- Step 1 ---------- */
-  .sub-page .price-readout {
-    text-align: center;
-    margin: 10px 0 12px;
-  }
-  .sub-page .price {
-    font-size: 38px;
-    font-weight: 800;
-    color: #213041;
-  }
-  .sub-page .price-sub {
-    font-size: 12px;
-    color: var(--muted);
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    margin-top: 2px;
-  }
-  
-  .sub-page .control-row { margin: 12px 0; }
-  .sub-page .ctrl-label {
-    display: block;
-    font-size: 12px;
-    color: var(--muted);
-    margin-bottom: 8px;
-    font-weight: 600;
-  }
-  
-  .sub-page .term-pill {
-    display: inline-flex;
-    gap: 8px;
-    background: #f3f4f6;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    padding: 4px;
-  }
-  .sub-page .term-pill .pill {
-    border: 0;
-    min-width: 64px;
-    padding: 8px 10px;
-    border-radius: 999px;
-    background: transparent;
-    font-weight: 700;
-    color: #374151;
-    cursor: pointer;
-  }
-  .sub-page .term-pill .pill.on {
-    background: white;
-    border: 1px solid var(--line);
-    box-shadow: 0 4px 10px rgba(0,0,0,.06);
-    color: #111827;
-  }
-  
-  /* Slider (scoped!) */
-  .sub-page .slider-wrap { margin: 8px 0 4px; }
-  .sub-page .slider-wrap input[type="range"] {
-    width: 100%;
-    accent-color: var(--brand);
-  }
-  .sub-page .slider-scale {
-    display: flex; justify-content: space-between;
-    font-size: 12px; color: var(--muted);
-    margin-top: 4px;
-  }
-  
-  /* Select (scoped!) */
-  .sub-page .select-wrap select {
-    width: 100%;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 12px 10px;
-    font-size: 14px;
-    background: #f9fafb;
-    color: #111827;
-    outline: none;
-  }
-  .sub-page .select-wrap select:focus {
-    border-color: var(--brand);
-    box-shadow: 0 0 0 4px var(--ring);
-  }
-  
-  /* meta text */
-  .sub-page .meta-note {
-    font-size: 12px;
-    color: var(--muted);
-    margin: 8px 0 14px;
-  }
-  
-  /* ---------- Step 2 ---------- */
-  .sub-page .list-head {
-    display: flex; justify-content: space-between; align-items: center;
-    font-weight: 700; font-size: 13px; color: #334155;
-    margin: 12px 0 8px;
-  }
-  .sub-page .link-btn {
-    border: 0;
-    background: transparent;
-    color: var(--brand);
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .sub-page .link-btn.sm { font-size: 12px; }
-  
-  .sub-page .method-list {
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    overflow: hidden;
-    background: #fbfbfc;
-    margin-bottom: 12px;
-  }
-  .sub-page .method-item {
-    display: grid;
-    grid-template-columns: 20px 28px 1fr;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 12px;
-    border-bottom: 1px solid var(--line);
-    cursor: pointer;
-  }
-  .sub-page .method-item:last-child { border-bottom: 0; }
-  .sub-page .method-item input[type="radio"] { width: 16px; height: 16px; }
-  .sub-page .method-icon {
-    width: 28px; height: 28px; border-radius: 50%;
-    background: #e5e7eb;
-  }
-  .sub-page .method-icon.bank { background: linear-gradient(135deg, #a5b4fc, #60a5fa); }
-  .sub-page .method-icon.card.visa { background: linear-gradient(135deg, #2563eb, #0ea5e9); }
-  .sub-page .method-icon.card.mc { background: linear-gradient(135deg, #f59e0b, #ef4444); }
-  
-  .sub-page .method-meta .m-title { font-weight: 700; color: #111827; }
-  .sub-page .method-meta .m-sub { font-size: 12px; color: var(--muted); }
-  
-  .sub-page .method-inline {
-    display: flex; align-items: center; gap: 10px;
-  }
-  .sub-page .method-icon.sm { width: 22px; height: 22px; }
-  
-  /* ---------- Step 3 ---------- */
-  .sub-page .review-block {
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 12px;
-    background: #fbfbfc;
-  }
-  .sub-page .review-row {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 8px;
-  }
-  .sub-page .review-row.space { margin-top: 8px; }
-  .sub-page .r-head { font-weight: 800; color: #1f2937; }
-  .sub-page .review-grid {
-    display: grid;
-    grid-template-columns: 140px 1fr;
-    row-gap: 6px;
-    font-size: 14px;
-    margin: 6px 0 8px;
-  }
-  .sub-page .r-k { color: var(--muted); }
-  .sub-page .r-v { color: #111827; font-weight: 600; }
-  
-  .sub-page .confirm-note {
-    font-size: 12px; color: var(--muted);
-    margin: 10px 0 16px;
-  }
-  
-  /* ---------- Buttons (scoped!) ---------- */
-  .sub-page .cta-row { margin-top: 10px; }
-  .sub-page .cta-row.split { display: flex; gap: 10px; }
-  
-  .sub-page .btn-primary,
-  .sub-page .btn-ghost {
-    width: 100%;
-    border-radius: 12px;
-    padding: 12px 14px;
-    font-weight: 800;
-    border: 0;
-    cursor: pointer;
-  }
-  
-  .sub-page .btn-primary {
-    background: var(--brand);
-    color: #fff;
-    box-shadow: 0 8px 22px rgba(18,133,215,.25);
-  }
-  .sub-page .btn-primary:hover { background: var(--brand-dark); }
-  
-  .sub-page .btn-ghost {
-    background: #eef2f7;
-    color: #0f172a;
-    border: 1px solid var(--line);
-  }
-  
-  /* ---------- Responsive ---------- */
-  @media (min-width: 420px) {
-    .sub-page .sub-card { width: 390px; padding: 20px; }
-  }
-  
+.sub2 .sub2-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: clamp(20px, 4vw, 36px);
+}
+
+.sub2 .sub2-head {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.sub2 .sub2-title {
+  margin: 0 0 8px;
+  font-size: clamp(24px, 3.2vw, 34px);
+  font-weight: 800;
+}
+.sub2 .sub2-subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+}
+
+/* grid of plans */
+.sub2 .sub2-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 18px 0 22px;
+}
+@media (max-width: 900px) {
+  .sub2 .sub2-grid { grid-template-columns: 1fr; }
+}
+
+.sub2 .sub2-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 18px 16px;
+  border-radius: 16px;
+  background: var(--grad1);
+  color: var(--ink);
+  border: 1px solid rgba(148,163,184,.18);
+  cursor: pointer;
+  text-align: left;
+  transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.sub2 .sub2-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(0,0,0,.45);
+  border-color: rgba(148,163,184,.28);
+}
+.sub2 .sub2-card.is-active {
+  box-shadow: 0 0 0 3px var(--ring), 0 18px 50px rgba(0,0,0,.5);
+  border-color: transparent;
+}
+
+.sub2 .sub2-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.sub2 .sub2-topline {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sub2 .sub2-price {
+  font-size: clamp(22px, 3vw, 28px);
+  font-weight: 800;
+}
+.sub2 .sub2-price-sub {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.sub2 .sub2-credits {
+  text-align: right;
+}
+.sub2 .sub2-credits-num {
+  font-size: clamp(24px, 3.2vw, 32px);
+  font-weight: 900;
+  display: block;
+}
+.sub2 .sub2-credits-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sub2 .sub2-features {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 8px;
+  color: var(--ink);
+}
+.sub2 .sub2-features li {
+  font-size: 14px;
+  color: #cfd6e1;
+}
+
+.sub2 .sub2-radio {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+.sub2 .sub2-radio .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #93c5fd;
+  background: transparent;
+  transition: background .2s ease, transform .15s ease;
+}
+.sub2 .sub2-radio .dot.on {
+  background: #93c5fd;
+  transform: scale(1.05);
+}
+
+.sub2 .sub2-cta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+.sub2 .sub2-recap {
+  font-size: 15px;
+}
+.sub2 .muted { color: #9ca3af; }
+
+.sub2 .sub2-btn {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  border: 0;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .1s ease, box-shadow .2s ease;
+}
+.sub2 .sub2-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(59,130,246,.35);
+}
+/* 🌈 Gradient background for full page */
+.gradient-bg {
+  background: linear-gradient(90deg, #F1F5F9 0%, #E5EEFC 40%, #DEEAFC 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 🏷️ Header section */
+.sub2-header {
+  text-align: center;
+  margin-top: 50px;
+  margin-bottom: 30px;
+}
+
+.sub2-header .brand-title {
+  font-size: clamp(22px, 2.6vw, 32px);
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+}
+
+.sub2-header .page-title {
+  font-size: clamp(20px, 2.4vw, 26px);
+  font-weight: 700;
+  background: linear-gradient(135deg, #2563eb, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 6px;
+}
+
+.sub2-header .page-subtitle {
+  color: #475569;
+  font-size: 15px;
+  margin: 0;
+}
+
+/* 🧭 Card small improvements */
+.sub2 .sub2-card {
+  background: linear-gradient(145deg, #111827 0%, #0f172a 100%);
+  border: 1px solid rgba(148,163,184,.2);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.sub2 .sub2-card.is-active {
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.4), 0 16px 40px rgba(0,0,0,0.5);
+  transform: translateY(-3px);
+}
+
+/* Better badge look */
+.sub2 .sub2-badge {
+  position: absolute;
+  top: -14px;       /* move slightly above card */
+  right: 16px;      /* shift right, away from text */
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #2563eb, #8b5cf6);
+  box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+  white-space: nowrap;
+  z-index: 2;       /* make sure it stays visible */
+}
+

@@ -9,7 +9,7 @@ html, body, #root {
 body {
   margin: 0;
   font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
-  background-color: #f5f7fa;
+  background-color: #627591;
   color: #1f2937;
 }
 
@@ -17,21 +17,50 @@ body {
 .dashboard-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
+
+  /* fallback */
+  background-color: #f1f5f9;
+
+  /* layered gradient like your reference */
+  background:
+    /* corner glow (top-right) */
+    radial-gradient(900px 700px at 115% -10%, rgba(99,102,241,.16), transparent 60%),
+    /* sweeping arc (left-mid) */
+    radial-gradient(1100px 800px at -10% 35%, rgba(59,130,246,.10), transparent 65%),
+    /* base wash */
+    linear-gradient(90deg, #F1F5F9 0%, #E5EEFC 40%, #cfe1f9 100%);
+  background-attachment: fixed, fixed, fixed;  /* keeps the wash steady on scroll */
+  background-repeat: no-repeat;
 }
+[data-theme="dark"] .dashboard-container {
+  background: var(--bg-primary, #0b0f16);
+}
+
 
 /* 🔝 TOP NAVIGATION */
 .header-bar {
   width: 100%;
-  background: #fff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  background: linear-gradient(
+      90deg,
+      #F1F5F9 0%,
+      #E5EEFC 40%,
+      #cfe1f9 100%
+  );
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,.18);
+  box-shadow: 0 2px 12px rgba(0,0,0,.12);
   padding: 1rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
+  color: #fff;              /* keep text legible on gradient */
 }
-
+[data-theme="dark"] .header-bar {
+  background: var(--bg-primary, #0b0f16);
+}
 
 .brand-title {
   font-size: 1.3rem;
