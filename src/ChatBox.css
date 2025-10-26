@@ -157,6 +157,7 @@ body {
   color: #333;
   font-weight: bold;
   user-select: none;
+  
 }
 
 .lang-toggle .toggle-indicator {
@@ -165,7 +166,12 @@ body {
   height: 24px;
   top: 3px;
   left: 3px;
-  background: #ffffff;
+  background: linear-gradient(
+      90deg,
+      #F1F5F9 0%,
+      #E5EEFC 40%,
+      #cfe1f9 100%
+  );
   border-radius: 12px;
   transition: left 0.25s ease;
   z-index: 1;
@@ -236,7 +242,12 @@ body {
 }
 
 .btn-add {
-  background-color: #2563eb;
+  background: linear-gradient(
+    90deg,
+    #b0d1f1 0%,
+    #90b8f9 40%,
+    #428cee 100%
+);
   color: white;
   border: none;
   margin-right: 12px;
@@ -248,7 +259,12 @@ body {
 }
 
 .btn-add:hover {
-  background-color: #1d4ed8;
+  background: linear-gradient(
+      90deg,
+      #F1F5F9 0%,
+      #E5EEFC 40%,
+      #cfe1f9 100%
+  );
 }
 
 /* 💬 CHAT PANEL */
@@ -267,6 +283,7 @@ body {
   margin-bottom: 1rem;
   max-height: calc(100vh - 250px); /* adjust based on header + input height */
   scroll-behavior: smooth;
+  
 }
 
 /* 🗨️ CHAT BUBBLES */
@@ -288,10 +305,17 @@ body {
   max-width: 85%;
   font-size: 0.95rem;
   line-height: 1.5;
-  background-color: #f3f4f6;
+  background: linear-gradient(
+      90deg,
+      #F1F5F9 0%,
+      #E5EEFC 40%,
+      #cfe1f9 100%
+  );
   color: #111827;
 }
-
+[data-theme="dark"] .bubble-content {
+  background: var(--bg-primary, #0b0f16);
+}
 .user-message .bubble-content {
   background-color: #dbeafe;
   align-self: flex-end;
@@ -434,7 +458,12 @@ body {
 }
 
 .chat-send-btn {
-  background-color: #2563eb;
+  background: linear-gradient(
+    90deg,
+    #b0d1f1 0%,
+    #90b8f9 40%,
+    #428cee 100%
+);
   color: white;
   border: none;
   padding: 0.6rem 1rem;
@@ -451,11 +480,17 @@ body {
 }
 
 .chat-send-btn:hover:not(:disabled) {
-  background-color: #1d4ed8;
+  background: linear-gradient(
+    90deg,
+    #88bff5 0%,
+      #6392de 40%,
+      #256ece 100%
+);
 }
 
 /* ✅ RESULTS PANEL */
 .result-list {
+  
   list-style: none;
   padding: 0;
   margin-bottom: 1rem;
@@ -470,8 +505,16 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  background: linear-gradient(
+      90deg,
+      #F1F5F9 0%,
+      #E5EEFC 40%,
+      #cfe1f9 100%
+  );
 }
-
+[data-theme="dark"] .result-list li {
+  background: linear-gradient(145deg, #1e3a8a, #172554);
+}
 .status-icon.success {
   color: #10b981;
 }
@@ -482,7 +525,12 @@ body {
 
 /* 📤 EXPORT BUTTONS */
 .export-btn {
-  background-color: #4b5563;
+  background: linear-gradient(
+      90deg,
+      #b0d1f1 0%,
+      #90b8f9 40%,
+      #428cee 100%
+  );
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -493,7 +541,12 @@ body {
 }
 
 .export-btn:hover {
-  background-color: #374151;
+  background: linear-gradient(
+      90deg,
+      #F1F5F9 0%,
+      #E5EEFC 40%,
+      #cfe1f9 100%
+  );
 }
 /* 📁 FILE PREVIEW CONTAINER IN DOCUMENT PANEL */
 .file-preview-card {
@@ -676,7 +729,7 @@ body[data-theme="dark"] .panel-results .panel-title {
 }
 
 body[data-theme="dark"] .export-btn {
-  background-color: #4b5563;
+  background: linear-gradient(145deg, #1e3a8a, #172554);
 }
 
 body[data-theme="dark"] .theme-toggle-btn {
@@ -792,14 +845,19 @@ body[data-theme="dark"] .theme-toggle-btn:hover {
   background-color: var(--accent-blue);
   color: #ffffff;
   border: none;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  background: linear-gradient(145deg, #1e3a8a, #172554);
 }
 
 [data-theme="dark"] .export-btn:hover,
 [data-theme="dark"] .btn-add:hover,
 [data-theme="dark"] .chat-send-btn:hover,
 [data-theme="dark"] .theme-toggle-btn:hover {
-  background-color: #2563eb;
+  background: linear-gradient(
+    90deg,
+    #88bff5 0%,
+      #6392de 40%,
+      #256ece 100%
+);
   transform: translateY(-1px);
 }
 
@@ -859,7 +917,7 @@ body[data-theme="dark"] .theme-toggle-btn:hover {
   /* border: 1px solid #334155; */
 }
 [data-theme="dark"] .assistant-message .bubble-content {
-  background-color: #0b163e;
+  background: linear-gradient(145deg, #1e3a8a, #172554);
   align-self: flex-start;
   color:#c9d1d9;
 }
@@ -1063,10 +1121,10 @@ body[data-theme="dark"] .theme-toggle-btn:hover {
 }
 .credit-display {
   position: fixed;
-  bottom: 10px;
-  right: 1295px;
+  bottom: 12px;
+  right: 20px; /* ✅ Keep it visible on all screens */
   background: #374151;
-  color: var(--text-color);
+  color: var(--text-color, #fff);
   padding: 8px 14px;
   border-radius: 8px;
   font-size: 14px;
@@ -1075,6 +1133,9 @@ body[data-theme="dark"] .theme-toggle-btn:hover {
   align-items: center;
   gap: 8px;
   transition: transform 0.3s ease, opacity 0.3s ease;
+  z-index: 9999; /* make sure it’s above everything */
+  width:175px;
+  left:30px
 }
 
 .credit-display .credit-dot {
@@ -1084,7 +1145,31 @@ body[data-theme="dark"] .theme-toggle-btn:hover {
   background-color: #00c47c;
 }
 
+/* Subtle scaling animation */
 .credit-anim {
   transform: scale(1.1);
-  opacity: 0.8;
+  opacity: 0.9;
+}
+
+/* 📱 Adjust for smaller screens */
+@media (max-width: 768px) {
+  .credit-display {
+    bottom: 16px;
+    right: 16px;
+    font-size: 13px;
+    padding: 7px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .credit-display {
+    bottom: 14px;
+    right: 10px;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+[data-theme="dark"] .credit-display {
+  background: linear-gradient(145deg, #1e3a8a, #172554);
+  color: #e0e7ff;
 }

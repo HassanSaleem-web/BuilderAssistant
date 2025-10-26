@@ -1109,6 +1109,7 @@ export default function ChatBox() {
               ))}
             </div>
           )}
+         
         </aside>
 
         {/* Chat */}
@@ -1198,14 +1199,15 @@ export default function ChatBox() {
             </button>
           </div>
         </aside>
-      </div>
-      {user && (
+         {user && (
   <div className={`credit-display ${creditAnim ? "credit-anim" : ""}`}>
     <div className="credit-dot" />
     <span>{user.creditsLeft} free credits remaining</span>
   </div>
-)}
+)} 
 
+      </div>
+      
 
     </div>
   );

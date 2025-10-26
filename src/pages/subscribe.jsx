@@ -9,6 +9,8 @@ const PLANS = [
 
 export default function Subscribe() {
   const [selected, setSelected] = useState("pack_50");
+  const [loading, setLoading] = useState(false);
+
   const selectedPlan = useMemo(
     () => PLANS.find((p) => p.id === selected),
     [selected]
@@ -26,18 +28,37 @@ export default function Subscribe() {
 
   const pricePerCredit = (p) => p.dollars / p.credits;
 
-  const handleCheckout = () => {
-    const p = selectedPlan;
-    alert(
-      `Proceed to checkout:\n${p.credits} credits for ${fmtMoney.format(
-        p.dollars
-      )}\n(~${pricePerCredit(p).toFixed(2)} $/credit)`
-    );
+  const handleCheckout = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/stripe/create-checkout-session`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plan: selected, // pack_10, pack_50, pack_100
+            userId: JSON.parse(localStorage.getItem("user"))?._id,
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url; // Redirect to Stripe Checkout
+      } else {
+        alert("Failed to create checkout session.");
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="sub-page sub2 gradient-bg">
-      {/* Top brand header */}
       <header className="sub2-header">
         <h1 className="brand-title">DigiStav | Validorix</h1>
         <h2 className="page-title">Choose a credit pack</h2>
@@ -92,8 +113,12 @@ export default function Subscribe() {
               &nbsp;(~{pricePerCredit(selectedPlan).toFixed(2)} $/credit)
             </span>
           </div>
-          <button className="sub2-btn" onClick={handleCheckout}>
-            Continue to checkout
+          <button
+            className="sub2-btn"
+            onClick={handleCheckout}
+            disabled={loading}
+          >
+            {loading ? "Redirecting..." : "Continue to checkout"}
           </button>
         </footer>
       </div>
