@@ -1134,7 +1134,7 @@ body[data-theme="dark"] .theme-toggle-btn:hover {
   gap: 8px;
   transition: transform 0.3s ease, opacity 0.3s ease;
   z-index: 9999; /* make sure it’s above everything */
-  width:175px;
+  width:200px;
   left:30px
 }
 
