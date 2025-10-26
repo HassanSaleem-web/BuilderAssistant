@@ -31,6 +31,19 @@ export default function Subscribe() {
   const handleCheckout = async () => {
     try {
       setLoading(true);
+
+      // 🧩 Retrieve and safely extract user ID from localStorage
+      const stored = JSON.parse(localStorage.getItem("user"));
+      const userId = stored?._id || stored?.user?._id || stored?.data?._id;
+
+      console.log("🔹 Extracted userId:", userId);
+
+      if (!userId) {
+        alert("User not found — please log in again before purchasing credits.");
+        setLoading(false);
+        return;
+      }
+
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/api/stripe/create-checkout-session`,
         {
@@ -38,20 +51,21 @@ export default function Subscribe() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             planId: selected,
-            userId: JSON.parse(localStorage.getItem("user"))?._id,
-          })
-          
+            userId,
+          }),
         }
       );
 
       const data = await res.json();
+      console.log("🔹 Checkout session response:", data);
+
       if (data.url) {
         window.location.href = data.url; // Redirect to Stripe Checkout
       } else {
         alert("Failed to create checkout session.");
       }
     } catch (err) {
-      console.error("Checkout error:", err);
+      console.error("❌ Checkout error:", err);
       alert("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
