@@ -37,9 +37,10 @@ export default function Subscribe() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            plan: selected, // pack_10, pack_50, pack_100
+            planId: selected,
             userId: JSON.parse(localStorage.getItem("user"))?._id,
-          }),
+          })
+          
         }
       );
 
