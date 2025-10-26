@@ -32,9 +32,8 @@ export default function Subscribe() {
     try {
       setLoading(true);
 
-      // 🧩 Retrieve and safely extract user ID from localStorage
       const stored = JSON.parse(localStorage.getItem("user"));
-      const userId = stored?._id || stored?.user?._id || stored?.data?._id;
+const userId = stored?._id || stored?.user?._id || stored?.data?._id;
 
       console.log("🔹 Extracted userId:", userId);
 

@@ -7,6 +7,8 @@ export default function ProtectedRoute({ children }) {
   const location = useLocation();
 
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  const cachedUser = JSON.parse(localStorage.getItem("user"));
+  if (!user && !cachedUser) return <Navigate to="/login" />;
+  
   return children;
 }
