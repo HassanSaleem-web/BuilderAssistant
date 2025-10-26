@@ -1123,7 +1123,12 @@ body[data-theme="dark"] .theme-toggle-btn:hover {
   position: fixed;
   bottom: 12px;
   right: 20px; /* ✅ Keep it visible on all screens */
-  background: #374151;
+  background: linear-gradient(
+    90deg,
+    #b0d1f1 0%,
+    #90b8f9 40%,
+    #428cee 100%
+);
   color: var(--text-color, #fff);
   padding: 8px 14px;
   border-radius: 8px;
