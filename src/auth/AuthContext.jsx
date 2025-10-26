@@ -156,12 +156,7 @@ const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-useEffect(() => {
-  const cachedUser = localStorage.getItem("user");
-  if (cachedUser && !user) {
-    setUser(JSON.parse(cachedUser));
-  }
-}, []);
+
 
 // Named exports keep Vite Fast Refresh happy
 const useAuth = () => useContext(AuthContext);
