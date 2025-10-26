@@ -2,9 +2,9 @@ import React, { useMemo, useState } from "react";
 import "./../subscribestyles/subscribe.css";
 
 const PLANS = [
-  { id: "pack_10", dollars: 1, credits: 50, badge: "Starter" },
-  { id: "pack_50", dollars: 5, credits: 270, badge: "Most popular" },
-  { id: "pack_100", dollars: 10, credits: 600, badge: "Best value" },
+  { id: "pack_10", dollars: 10, credits: 50, badge: "Starter" },
+  { id: "pack_50", dollars: 50, credits: 270, badge: "Most popular" },
+  { id: "pack_100", dollars: 100, credits: 600, badge: "Best value" },
 ];
 
 export default function Subscribe() {
