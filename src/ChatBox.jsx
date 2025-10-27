@@ -731,6 +731,130 @@ import { useAuth } from "./auth/AuthContext.jsx";
 import { saveAs } from "file-saver";
 import { useNavigate } from "react-router-dom";
 import { FiCreditCard, FiLogOut, FiChevronRight } from "react-icons/fi";
+// i18n ---------------------------------------------------------------------------------
+const I18N = {
+  EN: {
+    // Roles (labels only; values stay stable keys)
+    role_investor: "Investor",
+    role_designer: "Designer",
+    role_site_manager: "Site Manager",
+    role_contractor: "Contractor",
+    role_tradesman: "Tradesman",
+
+
+
+    // Placeholders per role
+    ph_investor: "Check if my documentation meets Czech standards.",
+    ph_designer: "Validate BEP structure and missing sections.",
+    ph_site_manager: "Review safety and inspection checklist.",
+    ph_contractor: "Generate delivery checklist for the client.",
+    ph_tradesman: "Check my work contract and highlight missing or risky clauses.",
+    // Header / controls
+    dark: "🌙 Dark",
+    light: "☀️ Light",
+
+    // Panels
+    documents: "Documents",
+    add_document: "+ Add Document",
+    chat: "Chat",
+    sending: "Sending...",
+    results: "Results",
+    no_results: "No results yet. Ask the bot to analyze a document.",
+
+    // Export
+    export_txt: "Export TXT",
+    export_docx: "Export DOCX",
+    generating_txt: "Generating TXT...",
+    generating_docx: "Generating DOCX...",
+
+    // Profile / menu
+    buy_subscription: "Buy Subscription",
+    logout: "Logout",
+
+    // Credits bubble
+    credits_remaining_singular: "free credit remaining",
+    credits_remaining_plural: "free credits remaining",
+
+    // Modals
+    warn_title: "Wait! You still have credits left",
+    warn_body_a: "You currently have ",
+    warn_body_b_one: " remaining credit. Buying a new plan now will ",
+    warn_body_b_many: " remaining credits. Buying a new plan now will ",
+    warn_body_c: "reset",
+    warn_body_d: " your credits to the plan amount — they won’t be added.",
+    continue_anyway: "Continue Anyway",
+    cancel: "Cancel",
+
+    no_credits_title: "Buy more credits to chat",
+    no_credits_body: "You’ve used all your free credits. Please buy more credits to continue chatting and unlock new features.",
+    go_to_subscription: "Go to Subscription",
+  },
+
+  CS: {
+    // Roles
+    role_investor: "Investor",
+    role_designer: "Projektant",
+    role_site_manager: "Stavbyvedoucí",
+    role_contractor: "Dodavatel",
+    role_tradesman: "Řemeslník",
+    
+
+    // Placeholders per role
+    ph_investor: "Zkontrolujte, zda moje dokumentace splňuje české normy.",
+    ph_designer: "Ověřte strukturu BEP a chybějící části.",
+    ph_site_manager: "Zkontrolujte bezpečnost a inspekční seznam.",
+    ph_contractor: "Vytvořte předávací checklist pro klienta.",
+    ph_tradesman: "Zkontrolujte moji pracovní smlouvu a upozorněte na chybějící nebo rizikové části.",
+    
+
+    // Header / controls
+    dark: "🌙 Tmavý",
+    light: "☀️ Světlý",
+
+    // Panels
+    documents: "Dokumenty",
+    add_document: "+ Přidat dokument",
+    chat: "Odeslat",
+    sending: "Odesílám...",
+    results: "Výsledky",
+    no_results: "Zatím žádné výsledky. Požádejte bota o analýzu dokumentu.",
+
+    // Export
+    export_txt: "Export TXT",
+    export_docx: "Export DOCX",
+    generating_txt: "Generuji TXT...",
+    generating_docx: "Generuji DOCX...",
+
+    // Profile / menu
+    buy_subscription: "Koupit předplatné",
+    logout: "Odhlásit se",
+
+    // Credits bubble
+    credits_remaining_singular: "zbývající kredit zdarma",
+    credits_remaining_plural: "zbývajících kreditů zdarma",
+
+    // Modals
+    warn_title: "Počkejte! Stále máte kredity",
+    warn_body_a: "Aktuálně máte ",
+    warn_body_b_one: " zbývající kredit. Nákup nového plánu nyní ",
+    warn_body_b_many: " zbývajících kreditů. Nákup nového plánu nyní ",
+    warn_body_c: "resetuje",
+    warn_body_d: " vaše kredity na hodnotu plánu — nepřičte je.",
+
+    continue_anyway: "Pokračovat",
+    cancel: "Zrušit",
+
+    no_credits_title: "Kupte další kredity pro chat",
+    no_credits_body: "Vyčerpali jste všechny volné kredity. Kupte prosím další, abyste mohli pokračovat a odemknout nové funkce.",
+    go_to_subscription: "Přejít na předplatné",
+  },
+};
+
+// stable role keys used in state/backend
+const ROLE_KEYS = ["investor", "designer", "site_manager", "contractor", "tradesman"];
+
+// translator helper
+const t = (lang, key) => (I18N[lang]?.[key] ?? I18N.EN[key] ?? key);
 
 
 
@@ -744,7 +868,7 @@ export default function ChatBox() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [analysisResults, setAnalysisResults] = useState([]);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [selectedRole, setSelectedRole] = useState("Investor");
+  const [selectedRole, setSelectedRole] = useState("investor");
   const [selectedLanguage, setSelectedLanguage] = useState("EN");
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
   const [exportLoading, setExportLoading] = useState({ txt: false, docx: false });
@@ -767,26 +891,35 @@ export default function ChatBox() {
   /* ------------------------------
      Dynamic placeholders
   ------------------------------ */
-  const rolePlaceholders = {
-    Investor: "Check if my documentation meets Czech standards.",
-    Designer: "Validate BEP structure and missing sections.",
-    "Site Manager": "Review safety and inspection checklist.",
-    Contractor: "Generate delivery checklist for the client.",
-    Farmer: "Validate documents for grant applications.",
+  const getRolePlaceholder = (lang, roleKey) => {
+    const map = {
+      investor: "ph_investor",
+      designer: "ph_designer",
+      site_manager: "ph_site_manager",
+      contractor: "ph_contractor",
+      tradesman: "ph_tradesman",
+    };
+    return t(lang, map[roleKey]);
   };
-  const [placeholderText, setPlaceholderText] = useState(rolePlaceholders[selectedRole]);
+  
+  const [placeholderText, setPlaceholderText] = useState(getRolePlaceholder(selectedLanguage, selectedRole));
   const [showPlaceholder, setShowPlaceholder] = useState(true);
-
+  
   useEffect(() => {
-    setPlaceholderText(rolePlaceholders[selectedRole]);
+    setPlaceholderText(getRolePlaceholder(selectedLanguage, selectedRole));
     setShowPlaceholder(true);
     const timer = setTimeout(() => setShowPlaceholder(false), 2500);
     return () => clearTimeout(timer);
-  }, [selectedRole]);
-
+  }, [selectedRole, selectedLanguage]);
+  
   /* ------------------------------
      Theme control
   ------------------------------ */
+  useEffect(() => {
+    localStorage.setItem("language", selectedLanguage);
+    document.documentElement.setAttribute("lang", selectedLanguage.toLowerCase());
+  }, [selectedLanguage]);
+  
   useEffect(() => {
     document.body.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
@@ -1041,36 +1174,35 @@ export default function ChatBox() {
           DigiStav <span className="sub-brand">| Validorix</span>
         </div>
         <div className="controls">
-          <select
-            className="role-selector"
-            value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value)}
-          >
-            <option>Investor</option>
-            <option>Designer</option>
-            <option>Site Manager</option>
-            <option>Contractor</option>
-            <option>Farmer</option>
-          </select>
+        <select
+  className="role-selector"
+  value={selectedRole}
+  onChange={(e) => setSelectedRole(e.target.value)}
+>
+  <option value="investor">{t(selectedLanguage, "role_investor")}</option>
+  <option value="designer">{t(selectedLanguage, "role_designer")}</option>
+  <option value="site_manager">{t(selectedLanguage, "role_site_manager")}</option>
+  <option value="contractor">{t(selectedLanguage, "role_contractor")}</option>
+  <option value="tradesman">{t(selectedLanguage, "role_tradesman")}</option>
+
+</select>
 
           <button className="theme-toggle-btn" onClick={toggleTheme}>
-            {theme === "light" ? "🌙 Dark" : "☀️ Light"}
-          </button>
+  {theme === "light" ? t(selectedLanguage, "dark") : t(selectedLanguage, "light")}
+</button>
 
-          <div className="lang-switcher-toggle">
-            <div
-              className={`lang-toggle ${selectedLanguage === "CS" ? "cs" : "en"}`}
-              onClick={() =>
-                setSelectedLanguage(selectedLanguage === "EN" ? "CS" : "EN")
-              }
-            >
-              <div className="toggle-labels">
-                <span>EN</span>
-                <span>CS</span>
-              </div>
-              <div className="toggle-indicator" />
-            </div>
-          </div>
+<div className="lang-switcher-toggle">
+  <div
+    className={`lang-toggle ${selectedLanguage === "CS" ? "cs" : "en"}`}
+    onClick={() => setSelectedLanguage(selectedLanguage === "EN" ? "CS" : "EN")}
+  >
+    <div className="toggle-labels">
+      <span>EN</span>
+      <span>CS</span>
+    </div>
+    <div className="toggle-indicator" />
+  </div>
+</div>
          
 
           <div className="profile-dropdown">
@@ -1094,23 +1226,19 @@ export default function ChatBox() {
       <ul className="menu-list">
       <li onClick={handleBuySubscription} role="button" tabIndex={0}>
   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-    <span className="icon">
-      <FiCreditCard size={16} />
-    </span>
-    <span>Buy Subscription</span>
+    <span className="icon"><FiCreditCard size={16} /></span>
+    <span>{t(selectedLanguage, "buy_subscription")}</span>
   </div>
   <FiChevronRight size={16} style={{ color: "#9CA3AF" }} />
 </li>
 
-  <li onClick={logout} role="button" tabIndex={0}>
-    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-      <span className="icon">
-        <FiLogOut size={16} />
-      </span>
-      <span>Logout</span>
-    </div>
-    <FiChevronRight size={16} style={{ color: "#9CA3AF" }} />
-  </li>
+<li onClick={logout} role="button" tabIndex={0}>
+  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+    <span className="icon"><FiLogOut size={16} /></span>
+    <span>{t(selectedLanguage, "logout")}</span>
+  </div>
+  <FiChevronRight size={16} style={{ color: "#9CA3AF" }} />
+</li>
 </ul>
     </div>
   </div>
@@ -1123,7 +1251,7 @@ export default function ChatBox() {
       <div className="main-layout">
         {/* Documents */}
         <aside className="panel panel-docs">
-          <div className="panel-title">Documents</div>
+        <div className="panel-title">{t(selectedLanguage, "documents")}</div>
           <input
             type="file"
             accept=".pdf,.docx,.txt"
@@ -1133,8 +1261,8 @@ export default function ChatBox() {
             style={{ display: "none" }}
           />
           <button className="btn-add" onClick={() => fileInputRef.current.click()}>
-            + Add Document
-          </button>
+  {t(selectedLanguage, "add_document")}
+</button>
 
           {selectedFiles.length > 0 && (
             <div className="file-preview-container">
@@ -1194,65 +1322,90 @@ export default function ChatBox() {
               onChange={(e) => setUserInput(e.target.value)}
               placeholder={showPlaceholder ? placeholderText : ""}
             />
-            <button
-              className="chat-send-btn"
-              onClick={sendMessage}
-              disabled={loading}
-            >
-              {loading ? "Sending..." : "Chat"}
-            </button>
+           <button
+  className="chat-send-btn"
+  onClick={sendMessage}
+  disabled={loading}
+>
+  {loading ? t(selectedLanguage, "sending") : t(selectedLanguage, "chat")}
+</button>
           </div>
         </section>
 
         {/* Results */}
         <aside className="panel panel-results">
-          <div className="panel-title">Results</div>
-          <div className="results-scrollable">
-            <ul className="result-list">
-              {analysisResults.length > 0 ? (
-                analysisResults.map((item, idx) => (
-                  <li key={idx}>
-                    <span className={`status-icon ${item.status}`}>
-                      {item.status === "success"
-                        ? "✔"
-                        : item.status === "warning"
-                        ? "⚠"
-                        : "✖"}
-                    </span>
-                    {item.text}
-                  </li>
-                ))
-              ) : (
-                <li className="placeholder">
-                  No results yet. Ask the bot to analyze a document.
-                </li>
-              )}
-            </ul>
-          </div>
+        <div className="panel-title">{t(selectedLanguage, "results")}</div>
+
+<div className="results-scrollable">
+  {analysisResults.length > 0 ? (
+    <ul className="result-list">
+      {analysisResults.map((item, idx) => {
+        const icon =
+          item.status === "success"
+            ? "✔"
+            : item.status === "warning"
+            ? "⚠"
+            : "✖";
+        const iconColor =
+          item.status === "success"
+            ? "#10b981" // green
+            : item.status === "warning"
+            ? "#facc15" // yellow
+            : "#ef4444"; // red
+        return (
+          <li key={idx} className="result-item">
+            <span
+              className="status-icon"
+              style={{
+                color: iconColor,
+                fontWeight: 600,
+                marginRight: "8px",
+              }}
+            >
+              {icon}
+            </span>
+            <span className="result-text">{item.text}</span>
+          </li>
+        );
+      })}
+    </ul>
+  ) : (
+    <div className="results-empty">
+      <p>{t(selectedLanguage, "no_results")}</p>
+    </div>
+  )}
+</div>
+
 
           <div className="export-buttons">
-            <button
-              className="export-btn"
-              onClick={() => exportSummary("txt")}
-              disabled={exportLoading.txt}
-            >
-              {exportLoading.txt ? "Generating TXT..." : "Export TXT"}
-            </button>
-            <button
-              className="export-btn"
-              onClick={() => exportSummary("docx")}
-              disabled={exportLoading.docx}
-            >
-              {exportLoading.docx ? "Generating DOCX..." : "Export DOCX"}
-            </button>
+          <button
+  className="export-btn"
+  onClick={() => exportSummary("txt")}
+  disabled={exportLoading.txt}
+>
+  {exportLoading.txt ? t(selectedLanguage, "generating_txt") : t(selectedLanguage, "export_txt")}
+</button>
+
+<button
+  className="export-btn"
+  onClick={() => exportSummary("docx")}
+  disabled={exportLoading.docx}
+>
+  {exportLoading.docx ? t(selectedLanguage, "generating_docx") : t(selectedLanguage, "export_docx")}
+</button>
           </div>
         </aside>
-         {user && (
+        {user && (
   <div className={`credit-display ${creditAnim ? "credit-anim" : ""}`}>
     <div className="credit-dot" />
-    <span>{user.creditsLeft} free credits remaining</span>
+    <span>
+      {Number(user.creditsLeft ?? 0)}{" "}
+      {Number(user.creditsLeft) === 1
+        ? t(selectedLanguage, "credits_remaining_singular")
+        : t(selectedLanguage, "credits_remaining_plural")}
+    </span>
   </div>
-)} 
+)}
 {showBuyWarning && (
   <div
     className="modal-backdrop"
@@ -1289,31 +1442,29 @@ export default function ChatBox() {
   <circle cx="12" cy="17" r="1.25" fill="#ef4444" />
 </svg>
 
-        <h2 className="modal-title">Wait! You still have credits left</h2>
+<h2 className="modal-title">{t(selectedLanguage, "warn_title")}</h2>
+<p className="modal-text">
+  {t(selectedLanguage, "warn_body_a")}
+  <strong>{Number(user?.creditsLeft ?? 0)}</strong>
+  {Number(user?.creditsLeft ?? 0) === 1
+    ? t(selectedLanguage, "warn_body_b_one")
+    : t(selectedLanguage, "warn_body_b_many")}
+  <strong> {t(selectedLanguage, "warn_body_c")} </strong>
+  {t(selectedLanguage, "warn_body_d")}
+</p>
 
-        <p className="modal-text">
-          You currently have <strong>{Number(user?.creditsLeft ?? 0)}</strong> remaining credit
-          {Number(user?.creditsLeft ?? 0) === 1 ? "" : "s"}. Buying a new plan now will
-          <strong> reset</strong> your credits to the plan amount — they won’t be added.
-        </p>
+<div className="modal-actions">
+  <button className="btn btn-secondary" onClick={() => setShowBuyWarning(false)}>
+    {t(selectedLanguage, "cancel")}
+  </button>
+  <button
+    className="btn btn-primary"
+    onClick={() => { setShowBuyWarning(false); navigate("/subscribe"); }}
+  >
+    {t(selectedLanguage, "continue_anyway")}
+  </button>
+</div>
 
-        <div className="modal-actions">
-          <button
-            className="btn btn-secondary"
-            onClick={() => setShowBuyWarning(false)}
-          >
-            Cancel
-          </button>
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setShowBuyWarning(false);
-              navigate("/subscribe");
-            }}
-          >
-            Continue Anyway
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -1354,23 +1505,17 @@ export default function ChatBox() {
   <circle cx="12" cy="17" r="1.25" fill="#ef4444" />
 </svg>
 
-        <h2 className="modal-title text-[#1e3a8a]">Buy more credits to chat</h2>
+<h2 className="modal-title text-[#1e3a8a]">{t(selectedLanguage, "no_credits_title")}</h2>
+<p className="modal-text">{t(selectedLanguage, "no_credits_body")}</p>
+<div className="modal-actions">
+  <button
+    className="btn btn-primary"
+    onClick={() => { setShowNoCreditsModal(false); navigate("/subscribe"); }}
+  >
+    {t(selectedLanguage, "go_to_subscription")}
+  </button>
+</div>
 
-        <p className="modal-text">
-          You’ve used all your free credits. Please buy more credits to continue chatting and unlock new features.
-        </p>
-
-        <div className="modal-actions">
-          <button
-            className="btn btn-primary"
-            onClick={() => {
-              setShowNoCreditsModal(false);
-              navigate("/subscribe");
-            }}
-          >
-            Go to Subscription
-          </button>
-        </div>
       </div>
     </div>
   </div>
