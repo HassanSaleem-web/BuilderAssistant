@@ -7,6 +7,7 @@ import SignUp from "./pages/Signup.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Resources from "./pages/Resources.jsx"; // ← NEW
 import Subscribe from "./pages/subscribe.jsx";
+import Footer from "./components/Footer.jsx";
 
 // inside <Routes>
 
@@ -56,6 +57,8 @@ export default function Root() {
         <Route path="*" element={<Navigate to="/" />} />
         <Route path="/subscribe" element={<Subscribe />} />
       </Routes>
+      {/* Footer visible on all pages except auth screens */}
+      {!isAuthPage && <Footer />}
     </>
   );
 }
