@@ -283,8 +283,158 @@ html, body {
 .auth-tagline {
   text-shadow: 0 1px 0 rgba(0,0,0,.35);
 }
+/* ====== FINAL RESPONSIVE + MOBILE FIX ====== */
 
-/* Tighten spacing slightly on small screens */
-@media (max-width: 520px) {
-  .auth-tagline { margin: -2px 0 14px; }
+/* Tablets and below */
+@media (max-width: 768px) {
+  .auth-page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100svh; /* works on iOS Safari and Chrome Android */
+    padding: 40px 20px 60px;
+    gap: 24px;
+  }
+
+  .auth-heading {
+    font-size: clamp(28px, 7vw, 36px);
+    line-height: 1.15;
+    text-align: center;
+    margin: 0 0 6px;
+  }
+
+  .auth-tagline {
+    font-size: 14px;
+    text-align: center;
+    line-height: 1.4;
+    color: var(--muted);
+    margin: 0 0 24px;
+    padding: 0 10px;
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    background: linear-gradient(180deg, rgba(27,31,42,.88), rgba(21,24,33,.88));
+    border-radius: 14px;
+    padding: 28px 20px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+  }
+
+  .auth-card::before {
+    opacity: 0.25;
+  }
+
+  .auth-card h2 {
+    position: static; /* remove desktop offset */
+    text-align: center;
+    font-size: 20px;
+    margin-bottom: 22px;
+  }
+
+  .auth-card input,
+  .auth-card button {
+    width: 100%;
+    margin: 10px 0 16px;
+    font-size: 15px;
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .auth-card button {
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    box-shadow: 0 4px 18px rgba(59,130,246,.35);
+    
+  }
+  
+  .link {
+    font-size: 0.9rem;
+    margin-top: 6px;
+    text-align: center;
+  }
+
+  .alert {
+    font-size: 0.9rem;
+    padding: 8px 10px;
+  }
 }
+
+/* Phones and smaller devices */
+@media (max-width: 480px) {
+  .auth-heading {
+    font-size: 24px;
+  }
+
+  .auth-tagline {
+    font-size: 13.5px;
+    margin: 0 0 20px;
+  }
+
+  .auth-card {
+    padding: 24px 18px;
+    border-radius: 12px;
+  }
+
+  .auth-card h2 {
+    font-size: 19px;
+  }
+
+  .auth-card input,
+  .auth-card button {
+    font-size: 14px;
+    padding: 12px;
+  }
+}
+
+/* Tiny devices (Galaxy Fold, iPhone SE landscape) */
+@media (max-width: 360px) {
+  .auth-heading {
+    font-size: 22px;
+  }
+
+  .auth-card {
+    padding: 20px 14px;
+  }
+
+  .auth-card input,
+  .auth-card button {
+    font-size: 13px;
+    padding: 10px;
+  }
+
+  .auth-tagline {
+    font-size: 12.5px;
+  }
+}
+/* === CENTER FIX: hard overrides === */
+.auth-page {
+  display: grid !important;
+  place-items: center !important;
+  overflow-x: hidden;           /* avoid any horizontal nudge */
+}
+
+.auth-card {
+  width: 80%;
+  margin: 0 auto !important;    /* force center */
+  justify-self: center !important;
+}
+
+/* remove the desktop offset */
+.auth-card h2 {
+  position: static !important;
+  left: 0 !important;
+  text-align: center !important;
+}
+
+/* remove the 36px left shift */
+.auth-card input,
+.auth-card button {
+  width: 80% !important;
+  margin: 10px 0 16px 0 !important;
+}
+
+/* safety: no horizontal overflow from inner elements */
+html, body, .auth-card { overflow-x: hidden; }
