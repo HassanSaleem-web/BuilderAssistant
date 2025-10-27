@@ -729,7 +729,8 @@ import TypewriterBubble from "./TypewriterBubble";
 import AnimatedTyping from "./AnimatedTyping";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { saveAs } from "file-saver";
-
+import { useNavigate } from "react-router-dom";
+import { FiCreditCard, FiLogOut, FiChevronRight } from "react-icons/fi";
 
 
 
@@ -749,6 +750,19 @@ export default function ChatBox() {
   const [exportLoading, setExportLoading] = useState({ txt: false, docx: false });
   const fileInputRef = useRef();
   const { logout } = useAuth();
+  const navigate = useNavigate();
+  const [showBuyWarning, setShowBuyWarning] = useState(false);
+  const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
+
+  
+  const handleBuySubscription = () => {
+    const remaining = Number(user?.creditsLeft ?? 0);
+    if (remaining > 0) {
+      setShowBuyWarning(true);
+    } else {
+      navigate("/subscribe");
+    }
+  };
 
   /* ------------------------------
      Dynamic placeholders
@@ -884,7 +898,11 @@ export default function ChatBox() {
   const sendMessage = async () => {
     if (!userInput.trim()) return;
     setLoading(true);
-  
+    if (Number(user?.creditsLeft ?? 0) <= 0) {
+      setShowNoCreditsModal(true);
+      return;
+    }
+    
     const userMessage = { role: "user", content: userInput };
     setMessages((prev) => [...prev, userMessage, { role: "assistant", content: "typing..." }]);
     setUserInput("");
@@ -1063,10 +1081,40 @@ export default function ChatBox() {
               👤
             </div>
             {showProfileMenu && (
-              <div className="profile-menu">
-                <button onClick={logout}>Logout</button>
-              </div>
-            )}
+  <div className="profile-menu">
+    <div className="profile-card">
+      <div className="profile-header">
+        <div className="avatar-icon">👤</div>
+        <div className="profile-info">
+          <h4>{user?.name || "User"}</h4>
+          <p>{user?.email || "example@email.com"}</p>
+        </div>
+      </div>
+      <div className="menu-divider" />
+      <ul className="menu-list">
+      <li onClick={handleBuySubscription} role="button" tabIndex={0}>
+  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+    <span className="icon">
+      <FiCreditCard size={16} />
+    </span>
+    <span>Buy Subscription</span>
+  </div>
+  <FiChevronRight size={16} style={{ color: "#9CA3AF" }} />
+</li>
+
+  <li onClick={logout} role="button" tabIndex={0}>
+    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <span className="icon">
+        <FiLogOut size={16} />
+      </span>
+      <span>Logout</span>
+    </div>
+    <FiChevronRight size={16} style={{ color: "#9CA3AF" }} />
+  </li>
+</ul>
+    </div>
+  </div>
+)}
           </div>
         </div>
       </header>
@@ -1205,10 +1253,133 @@ export default function ChatBox() {
     <span>{user.creditsLeft} free credits remaining</span>
   </div>
 )} 
+{showBuyWarning && (
+  <div
+    className="modal-backdrop"
+    onClick={(e) => {
+      if (e.target === e.currentTarget) setShowBuyWarning(false);
+    }}
+    role="dialog"
+    aria-modal="true"
+  >
+    <div className="modal-panel">
+      <button
+        className="modal-close"
+        aria-label="Close"
+        onClick={() => setShowBuyWarning(false)}
+      >
+        ×
+      </button>
+
+      <div className="modal-body">
+        {/* Safe, constrained icon (inline SVG so it can’t blow up) */}
+        <svg
+  className="modal-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  aria-hidden="true"
+>
+  <path
+    d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"
+    stroke="#ef4444"
+    strokeWidth="1.5"
+    fill="#fee2e2"
+  />
+  <path d="M12 8v5" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+  <circle cx="12" cy="17" r="1.25" fill="#ef4444" />
+</svg>
+
+        <h2 className="modal-title">Wait! You still have credits left</h2>
+
+        <p className="modal-text">
+          You currently have <strong>{Number(user?.creditsLeft ?? 0)}</strong> remaining credit
+          {Number(user?.creditsLeft ?? 0) === 1 ? "" : "s"}. Buying a new plan now will
+          <strong> reset</strong> your credits to the plan amount — they won’t be added.
+        </p>
+
+        <div className="modal-actions">
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowBuyWarning(false)}
+          >
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setShowBuyWarning(false);
+              navigate("/subscribe");
+            }}
+          >
+            Continue Anyway
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+{showNoCreditsModal && (
+  <div
+    className="modal-backdrop"
+    onClick={(e) => {
+      if (e.target === e.currentTarget) setShowNoCreditsModal(false);
+    }}
+    role="dialog"
+    aria-modal="true"
+  >
+    <div className="modal-panel">
+      <button
+        className="modal-close"
+        aria-label="Close"
+        onClick={() => setShowNoCreditsModal(false)}
+      >
+        ×
+      </button>
+
+      <div className="modal-body">
+        {/* Inline SVG icon */}
+        <svg
+  className="modal-icon"
+  viewBox="0 0 24 24"
+  fill="none"
+  aria-hidden="true"
+>
+  <path
+    d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"
+    stroke="#ef4444"
+    strokeWidth="1.5"
+    fill="#fee2e2"
+  />
+  <path d="M12 8v5" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" />
+  <circle cx="12" cy="17" r="1.25" fill="#ef4444" />
+</svg>
+
+        <h2 className="modal-title text-[#1e3a8a]">Buy more credits to chat</h2>
+
+        <p className="modal-text">
+          You’ve used all your free credits. Please buy more credits to continue chatting and unlock new features.
+        </p>
+
+        <div className="modal-actions">
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setShowNoCreditsModal(false);
+              navigate("/subscribe");
+            }}
+          >
+            Go to Subscription
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
       </div>
       
 
     </div>
+    
   );
 }
