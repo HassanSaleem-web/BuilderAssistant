@@ -1436,19 +1436,4 @@ body.no-scroll { overflow: hidden; }
 }
 
 
-.result-item {
-  display: flex;
-  align-items: flex-start;
-  padding: 6px 0;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  color: var(--text);
-}
 
-.results-empty {
-  text-align: center;
-  padding: 14px;
-  font-size: 0.95rem;
-  color: var(--muted);
-  opacity: 0.85;
-}
