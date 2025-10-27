@@ -294,6 +294,7 @@ html, body {
 
   /* center the card itself */
   .auth-card {
+    right:5px;
     width: 90%;
     margin: 0 auto !important;      /* force true center */
     padding: 28px 22px;
