@@ -6,6 +6,6 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: process.env.PORT || 5173, // important for Render
-    allowedHosts: ['builderassistant.onrender.com'], // allow Render domain
+    allowedHosts: ['builderassistant-3ml1.onrender.com'], // allow Render domain
   },
 });
