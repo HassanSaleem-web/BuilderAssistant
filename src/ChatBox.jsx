@@ -1047,7 +1047,7 @@ export default function ChatBox() {
       formData.append("language", selectedLanguage);
       selectedFiles.forEach((f) => formData.append("files", f));
   
-      const res = await fetch("https://builderbackend-v7n4.onrender.com/api/ask", {
+      const res = await fetch("https://builderbackend-2ndv.onrender.com/api/ask", {
         method: "POST",
         body: formData,
       });
@@ -1121,7 +1121,7 @@ export default function ChatBox() {
   const exportSummary = async (format = "txt") => {
     try {
       setExportLoading((p) => ({ ...p, [format]: true }));
-      const res = await fetch("https://builderbackend-v7n4.onrender.com/api/export", {
+      const res = await fetch("https://builderbackend-2ndv.onrender.com/api/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
