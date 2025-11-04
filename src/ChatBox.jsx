@@ -950,9 +950,16 @@ useEffect(() => {
       }
       const data = await res.json(); // { messages: [...], updatedAt }
       if (!aborted && Array.isArray(data?.messages)) {
-        // backend already returns oldest -> newest
-        setMessages(data.messages.map(m => ({ role: m.role, content: m.content })));
+        // ✅ Show backend messages instantly (no TypewriterBubble animation)
+        setMessages(
+          data.messages.map(m => ({
+            role: m.role,
+            content: m.content,
+            fromBackend: true, // mark messages as preloaded
+          }))
+        );
       }
+      
     } catch (e) {
       console.warn("Chat history fetch error:", e);
     }
@@ -1072,8 +1079,13 @@ const saveChatPair = async (userText, assistantText) => {
     const data = await res.json(); // { messages: [...], updatedAt }
     if (Array.isArray(data?.messages)) {
       // Replace local state with canonical trimmed last-10 from server
-      setMessages(data.messages.map(m => ({ role: m.role, content: m.content })));
+      setMessages(data.messages.map(m => ({
+        role: m.role,
+        content: m.content,
+        fromBackend: true, // ✅ ensures past messages stay static
+      })));
     }
+    
   } catch (err) {
     console.warn("Persist chat error:", err);
   }
@@ -1471,13 +1483,15 @@ useEffect(() => {
                   {msg.role === "user" ? "🙍" : "🤖"}
                 </div>
                 <div className="bubble-content">
-                  {msg.content === "typing..." ? (
-                    <AnimatedTyping />
-                  ) : msg.role === "assistant" ? (
-                    <TypewriterBubble text={cleanAssistantResponse(msg.content)} />
-                  ) : (
-                    <span>{msg.content}</span>
-                  )}
+                {msg.content === "typing..." ? (
+  <AnimatedTyping />
+) : msg.role === "assistant" && !msg.fromBackend ? (
+  <TypewriterBubble text={cleanAssistantResponse(msg.content)} />
+) : (
+  <span dangerouslySetInnerHTML={{ __html: cleanAssistantResponse(msg.content) }} />
+)}
+
+
                 </div>
               </div>
             ))}
