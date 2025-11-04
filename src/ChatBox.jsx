@@ -877,6 +877,11 @@ export default function ChatBox() {
   const navigate = useNavigate();
   const [showBuyWarning, setShowBuyWarning] = useState(false);
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
+  const [userDocs, setUserDocs] = useState([]);
+
+// ---- Chat history API base ----
+const AUTH_API = (import.meta.env.VITE_AUTH_API_URL || "").replace(/\/$/, "");
+const CHAT_API = `${AUTH_API}/api/chat`;
 
   
   const handleBuySubscription = () => {
@@ -924,6 +929,37 @@ export default function ChatBox() {
     document.body.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
+// ⬇️ Hydrate chat on mount / when user becomes available
+useEffect(() => {
+  let aborted = false;
+  if (!user?._id) return; // requires authenticated user (cookie-based)
+
+  (async () => {
+    try {
+      const res = await fetch(`${CHAT_API}/last`, {
+        method: "GET",
+        credentials: "include", // IMPORTANT: send cookie for auth
+      });
+      if (!res.ok) {
+        if (res.status === 401) {
+          console.warn("Not authorized to fetch chat history");
+        } else {
+          console.warn("Chat history fetch failed:", res.status);
+        }
+        return;
+      }
+      const data = await res.json(); // { messages: [...], updatedAt }
+      if (!aborted && Array.isArray(data?.messages)) {
+        // backend already returns oldest -> newest
+        setMessages(data.messages.map(m => ({ role: m.role, content: m.content })));
+      }
+    } catch (e) {
+      console.warn("Chat history fetch error:", e);
+    }
+  })();
+
+  return () => { aborted = true; };
+}, [user?._id, CHAT_API]);// for chat save
 
   const toggleTheme = () => setTheme((prev) => (prev === "light" ? "dark" : "light"));
 
@@ -1015,16 +1051,90 @@ export default function ChatBox() {
     console.error("⚠️ Error deducting credits:", err);
   }
 };
+// Save the latest user/assistant pair and refresh canonical last-10 from server
+const saveChatPair = async (userText, assistantText) => {
+  try {
+    const res = await fetch(`${CHAT_API}/append`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // IMPORTANT
+      body: JSON.stringify({
+        userMessage: { role: "user", content: userText },
+        assistantMessage: { role: "assistant", content: assistantText },
+      }),
+    });
+
+    if (!res.ok) {
+      console.warn("Failed to persist chat pair:", res.status);
+      return;
+    }
+
+    const data = await res.json(); // { messages: [...], updatedAt }
+    if (Array.isArray(data?.messages)) {
+      // Replace local state with canonical trimmed last-10 from server
+      setMessages(data.messages.map(m => ({ role: m.role, content: m.content })));
+    }
+  } catch (err) {
+    console.warn("Persist chat error:", err);
+  }
+};//chat save function
+
    /* ------------------------------
      File handling
   ------------------------------ */
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const files = Array.from(e.target.files).filter((file) =>
       ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"].includes(file.type)
     );
     setSelectedFiles((prev) => [...prev, ...files]);
+  
+    // 🔹 Immediately upload to backend (saves to Cloudinary + Mongo)
+    for (const file of files) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+  
+        const res = await fetch(`${import.meta.env.VITE_AUTH_API_URL}/api/documents`, {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
+  
+        if (!res.ok) {
+          console.warn(`❌ Upload failed for ${file.name}`);
+          continue;
+        }
+  
+        const savedDoc = await res.json();
+        console.log("✅ Saved document:", savedDoc);
+      } catch (err) {
+        console.error(`⚠️ Failed to save ${file.name}:`, err);
+      }
+    }
   };
+ // 🔹 Fetch user's uploaded documents from backend
+useEffect(() => {
+  if (!user?._id) return;
 
+  (async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_AUTH_API_URL}/api/documents`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        console.warn("Failed to fetch documents:", res.status);
+        return;
+      }
+      const docs = await res.json();
+      setUserDocs(docs); // Array of document objects
+      console.log("📄 User documents fetched:", docs);
+    } catch (err) {
+      console.error("Error fetching user documents:", err);
+    }
+  })();
+}, [user?._id]);
+ 
   /* ------------------------------
      Send message → backend
   ------------------------------ */
@@ -1091,6 +1201,7 @@ export default function ChatBox() {
       });
   
       setAnalysisResults(results);
+      saveChatPair(userMessage.content, assistantReply);
   
       // ✅ Deduct credits on successful response
       await deductCreditsFromBackend();
@@ -1251,42 +1362,100 @@ export default function ChatBox() {
       <div className="main-layout">
         {/* Documents */}
         <aside className="panel panel-docs">
-        <div className="panel-title">{t(selectedLanguage, "documents")}</div>
-          <input
-            type="file"
-            accept=".pdf,.docx,.txt"
-            multiple
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            style={{ display: "none" }}
-          />
-          <button className="btn-add" onClick={() => fileInputRef.current.click()}>
-  {t(selectedLanguage, "add_document")}
-</button>
+  <div className="panel-title">{t(selectedLanguage, "documents")}</div>
 
-          {selectedFiles.length > 0 && (
-            <div className="file-preview-container">
-              {selectedFiles.map((file, index) => (
-                <div key={index} className="file-preview-card">
-                  <span className="file-icon">📄</span>
-                  <div className="file-details">
-                    <div className="file-name">{file.name}</div>
-                    <div className="file-type">{file.type || "Unknown Type"}</div>
-                  </div>
-                  <button
-                    className="file-remove"
-                    onClick={() =>
-                      setSelectedFiles((prev) => prev.filter((_, i) => i !== index))
-                    }
-                  >
-                    ✖
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-         
-        </aside>
+  <input
+    type="file"
+    accept=".pdf,.docx,.txt"
+    multiple
+    ref={fileInputRef}
+    onChange={handleFileChange}
+    style={{ display: "none" }}
+  />
+  <button className="btn-add" onClick={() => fileInputRef.current.click()}>
+    {t(selectedLanguage, "add_document")}
+  </button>
+
+  {/* --- Local new uploads --- */}
+  {selectedFiles.length > 0 && (
+    <div className="file-preview-container">
+      {selectedFiles.map((file, index) => (
+        <div key={index} className="file-preview-card">
+          <span className="file-icon">📄</span>
+          <div className="file-details">
+            <div className="file-name">{file.name}</div>
+            <div className="file-type">{file.type || "Unknown Type"}</div>
+          </div>
+          <button
+            className="file-remove"
+            onClick={() =>
+              setSelectedFiles((prev) => prev.filter((_, i) => i !== index))
+            }
+          >
+            ✖
+          </button>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {/* --- Existing documents from backend --- */}
+  {userDocs.length > 0 && (
+    <div className="file-preview-container">
+      {userDocs.map((doc) => (
+        <div key={doc._id} className="file-preview-card">
+          <span className="file-icon">📄</span>
+          <div className="file-details">
+            <a
+              href={doc.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="file-name"
+              style={{
+                color: "inherit",
+                textDecoration: "none",
+                fontWeight: "500",
+              }}
+            >
+              {doc.originalName}
+            </a>
+            <div className="file-type">{doc.mimeType}</div>
+          </div>
+          <button
+            className="file-remove"
+            onClick={async () => {
+              try {
+                const res = await fetch(
+                  `${import.meta.env.VITE_AUTH_API_URL}/api/documents/${doc._id}`,
+                  {
+                    method: "DELETE",
+                    credentials: "include",
+                  }
+                );
+                if (res.ok) {
+                  setUserDocs((prev) => prev.filter((d) => d._id !== doc._id));
+                } else {
+                  alert("Failed to delete document.");
+                }
+              } catch (err) {
+                console.error("Delete error:", err);
+              }
+            }}
+          >
+            ✖
+          </button>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {/* --- No documents fallback --- */}
+  {selectedFiles.length === 0 && userDocs.length === 0 && (
+    <p style={{ fontSize: "14px", color: "#888", marginTop: "10px" }}>
+      No uploaded documents yet.
+    </p>
+  )}
+</aside>
 
         {/* Chat */}
         <section className="panel panel-chat">

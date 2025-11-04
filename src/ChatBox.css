@@ -329,7 +329,7 @@ body {
 /* FILE PREVIEW CARD FIXED LAYOUT */
 .file-preview-card {
   position: relative; /* allows absolute positioning of the close button */
-  background-color: var(--panel-bg, #f9fafb);
+  background-color:  #0d0d0d;
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   padding: 12px 14px 10px 14px;
@@ -1436,4 +1436,15 @@ body.no-scroll { overflow: hidden; }
 }
 
 
+/* Make filename links black on light background */
+body[data-theme="light"] .panel-docs .file-name,
+body[data-theme="light"] .panel-docs .file-name:visited {
+  color: #111 !important;   /* near-black for better readability */
+  text-decoration: none;
+}
+
+body[data-theme="light"] .panel-docs .file-name:hover {
+  color: #000 !important;
+  text-decoration: underline;
+}
 
