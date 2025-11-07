@@ -6,6 +6,7 @@ import { useAuth } from "./auth/AuthContext.jsx";
 import { saveAs } from "file-saver";
 import { useNavigate } from "react-router-dom";
 import { FiCreditCard, FiLogOut, FiChevronRight } from "react-icons/fi";
+import { useLanguage } from "./context/LanguageContext.jsx";
 // i18n ---------------------------------------------------------------------------------
 const I18N = {
   EN: {
@@ -144,7 +145,9 @@ export default function ChatBox() {
   const [analysisResults, setAnalysisResults] = useState([]);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [selectedRole, setSelectedRole] = useState("investor");
-  const [selectedLanguage, setSelectedLanguage] = useState("EN");
+  
+const { selectedLanguage, setSelectedLanguage } = useLanguage();
+
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
   const [exportLoading, setExportLoading] = useState({ txt: false, docx: false });
   const fileInputRef = useRef();
@@ -649,20 +652,19 @@ useEffect(() => {
       <div className="main-layout">
         {/* Documents */}
         <aside className="panel panel-docs">
-  <div className="panel-title">{t(selectedLanguage, "documents")}</div>
+        <div className="panel-title">{t(selectedLanguage, "documents")}</div>
 
-  <input
-    type="file"
-    accept=".pdf,.docx,.txt"
-    multiple
-    ref={fileInputRef}
-    onChange={handleFileChange}
-    style={{ display: "none" }}
-  />
-  <button className="btn-add" onClick={() => fileInputRef.current.click()}>
-    {t(selectedLanguage, "add_document")}
-  </button>
-
+<input
+  type="file"
+  accept=".pdf,.docx,.txt"
+  multiple  // ✅ ensures you can pick multiple files
+  ref={fileInputRef}
+  onChange={handleFileChange}
+  style={{ display: "none" }}
+/>
+<button className="btn-add" onClick={() => fileInputRef.current.click()}>
+  {t(selectedLanguage, "add_document")}
+</button>
   {/* --- Local new uploads --- */}
   {selectedFiles.length > 0 && (
     <div className="file-preview-container">
