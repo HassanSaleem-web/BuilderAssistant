@@ -1448,3 +1448,11 @@ body[data-theme="light"] .panel-docs .file-name:hover {
   text-decoration: underline;
 }
 
+.file-preview-card.selected {
+  border: 2px solid var(--brand-blue, #2563eb);
+  background-color: rgba(37, 99, 235, 0.08);
+  transition: 0.2s ease;
+}
+.file-preview-card {
+  cursor: pointer;
+}
