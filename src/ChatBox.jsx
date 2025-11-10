@@ -7,6 +7,8 @@ import { saveAs } from "file-saver";
 import { useNavigate } from "react-router-dom";
 import { FiCreditCard, FiLogOut, FiChevronRight } from "react-icons/fi";
 import { useLanguage } from "./context/LanguageContext.jsx";
+
+
 // i18n ---------------------------------------------------------------------------------
 const I18N = {
   EN: {
@@ -136,7 +138,7 @@ const t = (lang, key) => (I18N[lang]?.[key] ?? I18N.EN[key] ?? key);
 
 export default function ChatBox() {
   const [creditAnim, setCreditAnim] = useState(false);
-
+  const [threadId, setThreadId] = useState(null);
   const { user, setUser } = useAuth();
   const [userInput, setUserInput] = useState("");
   const [messages, setMessages] = useState([]);
@@ -374,9 +376,15 @@ const saveChatPair = async (userText, assistantText) => {
   ------------------------------ */
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files).filter((file) =>
-      ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"].includes(file.type)
+      [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // ✅ .xlsx
+        "application/vnd.ms-excel", // ✅ .xls (older Excel)
+        "text/plain"
+      ].includes(file.type)
     );
-    setSelectedFiles((prev) => [...prev, ...files]);
+        setSelectedFiles((prev) => [...prev, ...files]);
   
     // 🔹 Immediately upload to backend (saves to Cloudinary + Mongo)
     for (const file of files) {
@@ -442,11 +450,12 @@ useEffect(() => {
   
     try {
       const formData = new FormData();
-      formData.append("message", userInput);
-      formData.append("role", selectedRole);
-      formData.append("language", selectedLanguage);
-      selectedFiles.forEach((f) => formData.append("files", f));
-  
+formData.append("message", userInput);
+formData.append("role", selectedRole);
+formData.append("language", selectedLanguage);
+if (threadId) formData.append("threadId", threadId); // 👈 add this line
+selectedFiles.forEach((f) => formData.append("files", f));
+
       const res = await fetch("https://builderbackend-2ndv.onrender.com/api/ask", {
         method: "POST",
         body: formData,
@@ -479,6 +488,8 @@ useEffect(() => {
       // ✅ Handle Successful Response
       // --------------------------
       const data = await res.json();
+if (data.threadId && !threadId) setThreadId(data.threadId); // save thread for reuse
+
       const assistantReply = data.reply || "No response received.";
       const results = data.results || [];
   
@@ -515,7 +526,15 @@ useEffect(() => {
   
     setLoading(false);
   };
-  
+  // Send on Enter (with IME safety and Shift+Enter reserved for newline if you switch to <textarea> later)
+const handleKeyDown = (e) => {
+  if (e.isComposing || e.keyCode === 229) return; // IME in progress
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    if (!loading && userInput.trim()) sendMessage();
+  }
+};
+
   /* ------------------------------
      Export summary (TXT / DOCX)
   ------------------------------ */
@@ -654,14 +673,15 @@ useEffect(() => {
         <aside className="panel panel-docs">
         <div className="panel-title">{t(selectedLanguage, "documents")}</div>
 
-<input
+        <input
   type="file"
-  accept=".pdf,.docx,.txt"
-  multiple  // ✅ ensures you can pick multiple files
+  accept=".pdf,.docx,.txt,.xlsx,.xls"
+  multiple
   ref={fileInputRef}
   onChange={handleFileChange}
   style={{ display: "none" }}
 />
+
 <button className="btn-add" onClick={() => fileInputRef.current.click()}>
   {t(selectedLanguage, "add_document")}
 </button>
@@ -775,13 +795,15 @@ useEffect(() => {
           </div>
 
           <div className="chat-input-row">
-            <input
-              type="text"
-              className="chat-textbox"
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              placeholder={showPlaceholder ? placeholderText : ""}
-            />
+          <input
+  type="text"
+  className="chat-textbox"
+  value={userInput}
+  onChange={(e) => setUserInput(e.target.value)}
+  onKeyDown={handleKeyDown}        // ← add this
+  placeholder={showPlaceholder ? placeholderText : ""}
+/>
+
            <button
   className="chat-send-btn"
   onClick={sendMessage}
