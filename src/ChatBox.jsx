@@ -158,6 +158,7 @@ const { selectedLanguage, setSelectedLanguage } = useLanguage();
   const [showBuyWarning, setShowBuyWarning] = useState(false);
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
   const [userDocs, setUserDocs] = useState([]);
+  const [showTypingHint, setShowTypingHint] = useState(false);
 
 // ---- Chat history API base ----
 const AUTH_API = (import.meta.env.VITE_AUTH_API_URL || "").replace(/\/$/, "");
@@ -793,14 +794,27 @@ const handleKeyDown = (e) => {
               </div>
             ))}
           </div>
+          {showTypingHint && (
+  <div className="typing-hint-bubble">
+    💡 For deeper checks, use words like “analyze” or “validate”.
+  </div>
+)}
 
           <div className="chat-input-row">
           <input
   type="text"
   className="chat-textbox"
   value={userInput}
-  onChange={(e) => setUserInput(e.target.value)}
-  onKeyDown={handleKeyDown}        // ← add this
+  onChange={(e) => {
+    setUserInput(e.target.value);
+    setShowTypingHint(true);     // show the bubble when typing starts
+
+    clearTimeout(window.typingHintTimer);
+    window.typingHintTimer = setTimeout(() => {
+      setShowTypingHint(false);  // auto-hide after 2 seconds of no typing
+    }, 2000);
+  }}
+  onKeyDown={handleKeyDown}
   placeholder={showPlaceholder ? placeholderText : ""}
 />
 
